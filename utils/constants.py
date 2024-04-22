@@ -1,5 +1,8 @@
 from enum import Enum
 
+# non-player columns
+NON_PLAYER_COLUMNS = {'Bidder'}
+
 # class syntax
 class Players(Enum):
     AKASH = 1
@@ -9,3 +12,10 @@ class Players(Enum):
     ANI = 5
     NAATI = 6
 
+# paths
+
+def get_datascore_path(tourney_number):
+    return f'tourney_data/raw_scores/championship_{tourney_number}.csv'
+
+def get_graph_path(tourney_number, plot_type):
+    return f'tourney_data/graphs/C{tourney_number}_{plot_type}.png'

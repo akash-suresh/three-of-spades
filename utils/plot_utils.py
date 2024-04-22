@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+from utils.constants import get_graph_path
 
 def plot_leaderboard_barplot(player_stats, tourney_number, save_image=False):
     plt.figure(figsize=(7, 4))
@@ -9,7 +10,7 @@ def plot_leaderboard_barplot(player_stats, tourney_number, save_image=False):
     plt.title(f'Total Points for Each Individual Player : Championship #{tourney_number}')
     plt.xticks(rotation=45)
     if save_image:
-        plt.savefig(f'tourney_data/graphs/C{tourney_number}_total_points.png')
+        plt.savefig(get_graph_path(tourney_number, 'total_points'))
     plt.show()
 
 
@@ -27,7 +28,7 @@ def plot_performance_timeseries(game_data, players, tourney_number, save_image=F
   plt.ylabel('Win Ratio')
   plt.title(f'Win Ratio Over Time : Championship #{tourney_number}')
   if save_image:
-    plt.savefig(f'tourney_data/graphs/C{tourney_number}_win_ratio_timeseries.png')
+    plt.savefig(get_graph_path(tourney_number, 'win_ratio_timeseries'))
   plt.grid(True)
   plt.show()
 
@@ -48,6 +49,6 @@ def plot_leaderboard_timeseries(game_data, players, tourney_number, save_image=F
   plt.grid(True)
   
   if save_image:
-    plt.savefig(f'tourney_data/graphs/C{tourney_number}_points_timeseries.png')
+    plt.savefig(get_graph_path(tourney_number, 'points_timeseries'))
   
   plt.show()

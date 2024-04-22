@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
 
-# non-player columns
-NON_PLAYER_COLUMNS = {'Bidder'}
+from utils.constants import NON_PLAYER_COLUMNS, get_datascore_path
 
 # returns raw_df containing tournament scores
 def get_tourney_data(tourney_number):
 
-  df = pd.read_csv(f'tourney_data/raw_scores/championship_{tourney_number}.csv')
+  df = pd.read_csv(get_datascore_path(tourney_number))
 
   # inserting new column for Game ID
   df.insert(0, 'Game ID', np.arange(1, df.shape[0]+1))
