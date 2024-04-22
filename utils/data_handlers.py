@@ -7,7 +7,7 @@ NON_PLAYER_COLUMNS = {'Bidder'}
 # returns raw_df containing tournament scores
 def get_tourney_data(tourney_number):
 
-  df = pd.read_csv(f'tourney_data/championship_{tourney_number}.csv')
+  df = pd.read_csv(f'tourney_data/raw_scores/championship_{tourney_number}.csv')
 
   # inserting new column for Game ID
   df.insert(0, 'Game ID', np.arange(1, df.shape[0]+1))
