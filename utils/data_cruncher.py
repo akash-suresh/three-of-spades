@@ -45,7 +45,7 @@ def get_bid_and_won_stats(raw_df):
   res = res.sort_values(by=['Bid and Won'], ascending = False)
   return res
 
-def get_pairwise_stats(df):
+def get_pairwise_stats(df, min_num_games=10):
 
   # Calculate statistics for each pair of players when they are on the same team
   same_team_stats = df.melt(id_vars=['Game ID'], var_name='Player', value_name='Points')
@@ -75,9 +75,13 @@ def get_pairwise_stats(df):
   result = result.sort_values(by=['WinPercentage'], ascending = False)
   # rounding up values
   result = result.round({'AvgPoints': 1, 'WinPercentage': 1})
+
+  # filtering based on min_num_games threshold
+  result = result[result['TotalGames']>=min_num_games]
+
   return result
 
-def get_tri_stats(df):
+def get_tri_stats(df, min_num_games=5):
 
   # Calculate statistics for each pair of players when they are on the same team
   same_team_stats = df.melt(id_vars=['Game ID'], var_name='Player', value_name='Points')
@@ -116,5 +120,8 @@ def get_tri_stats(df):
   result = result.sort_values(by=['WinPercentage'], ascending = False)
   # rounding up values
   result = result.round({'AvgPoints': 1, 'WinPercentage': 1})
+
+  # filtering based on min_num_games threshold
+  result = result[result['TotalGames']>=min_num_games]
 
   return result
