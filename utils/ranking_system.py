@@ -4,7 +4,7 @@ from utils.data_preprocessor import get_players
 BASE_RATING = 1000
 DENOMINATOR = 200
 
-class Player:
+class PlayerProfile:
     def __init__(self, name, rating=BASE_RATING):
         self.name = name
         self.rating = rating
@@ -51,12 +51,14 @@ class UniversalRatingSystem:
         return (player_name in self.player_map)
     
     def registerPlayer(self, player_name):
-        self.player_map[player_name] = Player(player_name)
+        self.player_map[player_name] = PlayerProfile(player_name)
 
-    def getPlayer(self, player_name):
+    def getPlayerProfile(self, player_name):
         if not self.isRegistered(player_name):
+            # return exception
             return None
         return self.player_map[player_name]
+    
     # load from stored files
     # def load(self):
     
@@ -106,10 +108,10 @@ def score_wrapper(row, universal_rating_system, players):
     
     for player in players:
         if row[player] > 0:
-            winning_team.append(universal_rating_system.getPlayer(player))
+            winning_team.append(universal_rating_system.getPlayerProfile(player))
             winning_team_points.append(row[player])
         else:
-            losing_team.append(universal_rating_system.getPlayer(player))
+            losing_team.append(universal_rating_system.getPlayerProfile(player))
 
     calculate_rating_change(winning_team, losing_team, winning_team_points)
 
