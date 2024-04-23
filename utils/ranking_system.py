@@ -61,11 +61,13 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
     for player, player_points in zip(winning_team, winning_team_points):
         adjusted_points = (player_points/DENOMINATOR) * (1-adjustment_factor)
         player.rating += adjusted_points
+        player.rating = round(player.rating, 2)
 
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
         player.rating -= adjusted_points
+        player.rating = round(player.rating, 2)
 
 
 def score_wrapper(row, universal_rating_system, players):
