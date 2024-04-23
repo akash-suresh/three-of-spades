@@ -14,7 +14,9 @@ class Players(Enum):
 
 # paths
 
-def get_datascore_path(tourney_number):
+def get_datascore_path(tourney_number, is_mini_championship):
+    if is_mini_championship:
+        return f'tourney_data/raw_scores/mini_championship_{tourney_number}.csv'        
     return f'tourney_data/raw_scores/championship_{tourney_number}.csv'
 
 def get_graph_path(tourney_number, plot_type):

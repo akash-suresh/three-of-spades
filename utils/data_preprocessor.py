@@ -4,9 +4,9 @@ import numpy as np
 from utils.constants import NON_PLAYER_COLUMNS, get_datascore_path
 
 # returns raw_df containing tournament scores
-def get_tourney_data(tourney_number):
+def get_tourney_data(tourney_number, is_mini_championship=False):
 
-  df = pd.read_csv(get_datascore_path(tourney_number))
+  df = pd.read_csv(get_datascore_path(tourney_number, is_mini_championship))
 
   # inserting new column for Game ID
   df.insert(0, 'Game ID', np.arange(1, df.shape[0]+1))
