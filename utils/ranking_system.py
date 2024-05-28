@@ -1,5 +1,5 @@
 from utils.data_preprocessor import get_players
-
+import copy
 
 BASE_RATING = 1000
 DENOMINATOR = 200
@@ -37,15 +37,69 @@ Certainly! Developing a scoring system for a card game involves considering vari
 By considering these factors and implementing them into your scoring system algorithm, you can create a robust and fair system for evaluating player performance in the card game. Adjustments may be necessary over time as you gather more data and insights into player behavior and preferences.
 
 '''
+def rankPlayerMap(player_map):
+    rankings = {k: v for k, v in sorted(player_map.items(), key=lambda item: -1*item[1].rating)}
+    return rankings
+
+def getPlayersToRankMapping(rankings):
+    rank = 1
+    player_to_rank = {}
+    for key, _ in rankings.items():
+        player_to_rank[key] = rank
+        rank = rank + 1
+    return player_to_rank
 
 class UniversalRatingSystem:
     def __init__(self, rating=BASE_RATING):
         self.player_map = {}
+        # todo - maintain ranking change after every tournament
+        # self.tournament_map = {}
+
+    
+    def printRankingChange(self, before, after=None):
+        if after is None:
+            after = self.player_map
+        
+        # sorting based on ratings
+        old_rankings =  rankPlayerMap(before)
+        new_rankings =  rankPlayerMap(after)
+        
+        old_ranks = getPlayersToRankMapping(old_rankings)
+        new_ranks = getPlayersToRankMapping(new_rankings)
+
+        rank = 1
+        for player in new_rankings.values():
+            new_rating = player.rating
+            old_rating = old_rankings[player.name].rating
+
+            rating_change = round(new_rating - old_rating, 1)
+            rank_change = old_ranks[player.name] - new_ranks[player.name]
+
+            if rank_change > 0:
+                rank_change = u"\u25B2"+f"{rank_change}"
+            elif rank_change < 0:
+                rank_change = u"\u25BC"+f"{abs(rank_change)}"
+            else:
+                rank_change = "-"
+
+
+            if rating_change > 0:
+                rating_change = f'+{rating_change}'
+            
+            # todo - print like table
+            print(f'#{rank} [{rank_change}] {player.name} | {player.rating} ({rating_change})')
+            rank = rank + 1
+        print('\n -----------------------------')
+
 
     def print(self):
         # add rank and display
         for player in self.player_map.values():
             print(player.name, player.rating)
+        print('\n -----------------------------')
+
+    def getRankings(self):
+        return self.player_map
 
     def isRegistered(self, player_name):
         return (player_name in self.player_map)
@@ -125,7 +179,12 @@ def compute_ranking(raw_df, universal_rating_system):
         if not universal_rating_system.isRegistered(player):
             universal_rating_system.registerPlayer(player)
     
+    before_player_ratings = copy.deepcopy(universal_rating_system.getRankings())
+
     for _, row in raw_df.iterrows():
         score_wrapper(row, universal_rating_system, players)
 
+    after_player_ratings = universal_rating_system.getRankings()
+
+    return before_player_ratings, after_player_ratings
         
