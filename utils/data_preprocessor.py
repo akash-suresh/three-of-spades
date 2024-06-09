@@ -16,6 +16,11 @@ def get_tourney_data(tourney_number, is_mini_championship=False, is_friendly=Fal
   elif is_mini_championship:
     tournament_type = TournamentTypes.MINI_CHAMPIONSHIP
   
+  return get_tourney_data_v2(tourney_number, tournament_type=tournament_type)
+
+# returns raw_df containing tournament scores
+def get_tourney_data_v2(tourney_number, tournament_type = TournamentTypes.CHAMPIONSHIP):
+  
   df = pd.read_csv(get_datascore_path(tourney_number, tournament_type))
 
   # inserting new column for Game ID
