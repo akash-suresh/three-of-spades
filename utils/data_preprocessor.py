@@ -1,12 +1,22 @@
 import pandas as pd
 import numpy as np
 
-from utils.constants import NON_PLAYER_COLUMNS, get_datascore_path
+from utils.constants import NON_PLAYER_COLUMNS, TournamentTypes, get_datascore_path
 
 # returns raw_df containing tournament scores
-def get_tourney_data(tourney_number, is_mini_championship=False):
+def get_tourney_data(tourney_number, is_mini_championship=False, is_friendly=False):
+  
+  # setting tournament type based on flags -- need to refactor
+  tournament_type = TournamentTypes.CHAMPIONSHIP
+  # checking both flags are not set to True
+  assert not(is_friendly and is_mini_championship)
 
-  df = pd.read_csv(get_datascore_path(tourney_number, is_mini_championship))
+  if is_friendly:
+    tournament_type = TournamentTypes.FRIENDLY
+  elif is_mini_championship:
+    tournament_type = TournamentTypes.MINI_CHAMPIONSHIP
+  
+  df = pd.read_csv(get_datascore_path(tourney_number, tournament_type))
 
   # inserting new column for Game ID
   df.insert(0, 'Game ID', np.arange(1, df.shape[0]+1))
