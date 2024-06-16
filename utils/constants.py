@@ -47,3 +47,21 @@ def get_datascore_path(tourney_number, tournament_type=TournamentTypes.CHAMPIONS
 
 def get_graph_path(tourney_number, plot_type):
     return f'tourney_data/graphs/C{tourney_number}_{plot_type}.png'
+
+
+
+# all_tournaments
+TOURNAMENT_LIST_CHRONOLOGICAL = [
+    (TournamentTypes.CHAMPIONSHIP, 1),
+    (TournamentTypes.CHAMPIONSHIP, 2),
+    (TournamentTypes.CHAMPIONSHIP, 3),
+    (TournamentTypes.CHAMPIONSHIP, 4),
+    (TournamentTypes.CHAMPIONSHIP, 5),
+    (TournamentTypes.MINI_CHAMPIONSHIP, 1),
+    (TournamentTypes.CHAMPIONSHIP, 6),
+    (TournamentTypes.CHAMPIONSHIP, 7),
+    (TournamentTypes.MINI_CHAMPIONSHIP, 2),
+    (TournamentTypes.CHAMPIONSHIP, 8),
+    (TournamentTypes.MINI_CHAMPIONSHIP, 3),
+    (TournamentTypes.FRIENDLY, 2),
+]
