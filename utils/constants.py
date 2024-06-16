@@ -14,10 +14,28 @@ class Players(Enum):
 
 # class syntax
 class TournamentTypes(Enum):
-    CHAMPIONSHIP = 1
-    MINI_CHAMPIONSHIP = 2
-    FRIENDLY = 3
+    CHAMPIONSHIP = 'championship'
+    MINI_CHAMPIONSHIP = 'mini_championship'
+    FRIENDLY = 'international_friendly'
 
+    def display(self):
+        splits = self.value.split('_')
+        camel_case_bits = []
+        for s in splits:
+            camel_case_bits.append(s.title())
+        return ' '.join(camel_case_bits)
+        
+
+    def code(self):
+        splits = self.value.split('_')
+        # picking first character of each word
+        abrv = ''
+        for s in splits:
+            abrv += s[0]
+        
+        return abrv.upper()
+
+    
 # paths
 
 def get_datascore_path(tourney_number, tournament_type=TournamentTypes.CHAMPIONSHIP):

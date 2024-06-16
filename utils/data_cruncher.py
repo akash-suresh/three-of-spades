@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from utils.data_preprocessor import get_players
+from utils.data_preprocessor import get_game_data_as_timeseries, get_players, get_tourney_data_v2
 
 # Get player stats from raw_df
 def get_player_stats(raw_df):
@@ -26,6 +26,22 @@ def get_player_stats(raw_df):
   # rounding up values
   player_stats = player_stats.round({'AvgPoints': 1, 'WinPercentage': 1})
   return player_stats
+
+
+def get_championship_details(tourney_number, tournament_type):
+    
+    raw_df = get_tourney_data_v2(tourney_number, tournament_type=tournament_type)
+    game_data = get_game_data_as_timeseries(raw_df)
+    players = get_players(raw_df)
+
+    print(f'## 3 of Spades {tournament_type.display()} - {tourney_number}')
+    print(f'Players participating in this {tournament_type.display()} are : {players}')
+
+    player_stats = get_player_stats(raw_df)
+    player_stats.to_csv(f'tourney_data/graphs/{tournament_type.code()}{tourney_number}_player_stats.csv')
+
+    return raw_df, players, game_data, player_stats
+
 
 def get_bid_and_won_stats(raw_df):
   players = get_players(raw_df)
