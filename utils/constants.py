@@ -39,12 +39,10 @@ class TournamentTypes(Enum):
 # paths
 
 def get_datascore_path(tourney_number, tournament_type=TournamentTypes.CHAMPIONSHIP):
-    if tournament_type == TournamentTypes.MINI_CHAMPIONSHIP:
-        return f'tourney_data/raw_scores/mini_championship_{tourney_number}.csv'
-    elif tournament_type == TournamentTypes.FRIENDLY:
-        return f'tourney_data/raw_scores/friendly_{tourney_number}.csv'
-    return f'tourney_data/raw_scores/championship_{tourney_number}.csv'
+    return f'tourney_data/raw_scores/{tournament_type.value}_{tourney_number}.csv'
+    
 
+# todo this function should take in tournament_type
 def get_graph_path(tourney_number, plot_type):
     return f'tourney_data/graphs/C{tourney_number}_{plot_type}.png'
 

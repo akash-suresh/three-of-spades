@@ -30,7 +30,7 @@ def get_player_stats(raw_df):
 
 def get_championship_details(tourney_number, tournament_type):
     
-    raw_df = get_tourney_data_v2(tourney_number, tournament_type=tournament_type)
+    raw_df = get_tourney_data_v2(tourney_number, tournament_type)
     game_data = get_game_data_as_timeseries(raw_df)
     players = get_players(raw_df)
 
