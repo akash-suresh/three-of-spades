@@ -46,6 +46,9 @@ class Tournament:
     def getTimeseriesPlot(self, save_image: bool = False):
         plot_leaderboard_timeseries(self, save_image)
 
+    def getWinRatioSeriesPlot(self, save_image: bool = False):
+        plot_performance_timeseries(self, save_image)
+
 
 def plot_leaderboard_barplot(tournament: Tournament, save_image: bool = False):
     player_stats = tournament.playerStats
@@ -80,6 +83,26 @@ def plot_leaderboard_timeseries(tournament: Tournament, save_image=False):
     if save_image:
         plt.savefig(get_graph_path(tournament.num(), 'points_timeseries'))
 
+    plt.show()
+
+
+def plot_performance_timeseries(tournament: Tournament, save_image=False):
+    game_data = tournament.gameData
+
+    # Plot the points accumulated over time
+    plt.figure(figsize=(10, 6))
+
+    # Calculate cumulative points over time
+    for player in tournament.players:
+        plt.plot(game_data['Game ID'], game_data[f'WinRatio_{player}'], linestyle='-', label=player)
+
+    plt.legend()
+    plt.xlabel('Game Number')
+    plt.ylabel('Win Ratio')
+    plt.title(f'Win Ratio Over Time : {tournament.display()}')
+    if save_image:
+        plt.savefig(get_graph_path(tournament.num(), 'win_ratio_timeseries'))
+    plt.grid(True)
     plt.show()
 
 
