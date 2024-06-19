@@ -56,6 +56,7 @@ class Tournament:
         plot_performance_timeseries(self, save_image)
 
 
+# todo - move this to different file later
 def plot_leaderboard_barplot(tournament: Tournament, save_image: bool = False):
     player_stats = tournament.playerStats
 
