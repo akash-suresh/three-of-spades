@@ -5,9 +5,10 @@ BASE_RATING = 1000
 DENOMINATOR = 200
 
 class PlayerProfile:
-    def __init__(self, name, rating=BASE_RATING):
+    def __init__(self, name, rating):
         self.name = name
         self.rating = rating
+        self.bidAndWon = 0
 
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -49,13 +50,15 @@ def getPlayersToRankMapping(rankings):
         rank = rank + 1
     return player_to_rank
 
+
 class UniversalRatingSystem:
-    def __init__(self, rating=BASE_RATING):
+
+    def __init__(self):
         self.player_map = {}
         # todo - maintain ranking change after every tournament
         # self.tournament_map = {}
 
-    
+
     def printRankingChange(self, before, after=None):
         if after is None:
             after = self.player_map
@@ -105,14 +108,48 @@ class UniversalRatingSystem:
         return (player_name in self.player_map)
     
     def registerPlayer(self, player_name):
-        self.player_map[player_name] = PlayerProfile(player_name)
+        self.player_map[player_name] = PlayerProfile(player_name, rating=BASE_RATING)
 
     def getPlayerProfile(self, player_name):
-        if not self.isRegistered(player_name):
-            # return exception
-            return None
+        assert self.isRegistered(player_name)
+
         return self.player_map[player_name]
     
+    # Records the game
+    def record_game(self, row, players):
+        # Define teams and base points
+        winning_team = []
+        losing_team = []
+        winning_team_points = []
+
+        for player in players:
+            if row[player] > 0:
+                winning_team.append(self.getPlayerProfile(player))
+                winning_team_points.append(row[player])
+            else:
+                losing_team.append(self.getPlayerProfile(player))
+
+        calculate_rating_change(winning_team, losing_team, winning_team_points)
+
+    def addTournamentData(self, tournament: Tournament):
+        game_records = tournament.rawData
+        players = tournament.players
+
+        # check for any new players
+        for player in players:
+            if not self.isRegistered(player):
+                self.registerPlayer(player)
+        
+        before_player_ratings = copy.deepcopy(self.getRankings())
+
+        # feeding in scores one game at a time
+        for _, row in game_records.iterrows():
+            self.record_game(row, players)
+
+        after_player_ratings = self.getRankings()
+
+        return before_player_ratings, after_player_ratings
+
     # load from stored files
     # def load(self):
     
@@ -147,45 +184,12 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
         player.rating += adjusted_points
         player.rating = round(player.rating, 2)
 
+        if player_points > bid:
+            player.bidAndWon += 1
+
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
         player.rating -= adjusted_points
         player.rating = round(player.rating, 2)
 
-
-def score_wrapper(row, universal_rating_system, players):
-    # Define teams and base points
-    winning_team = []
-    losing_team = []
-    winning_team_points = []
-    
-    for player in players:
-        if row[player] > 0:
-            winning_team.append(universal_rating_system.getPlayerProfile(player))
-            winning_team_points.append(row[player])
-        else:
-            losing_team.append(universal_rating_system.getPlayerProfile(player))
-
-    calculate_rating_change(winning_team, losing_team, winning_team_points)
-
-
-
-def compute_ranking(tournament: Tournament, universal_rating_system: UniversalRatingSystem):
-    game_records = tournament.rawData
-    players = tournament.players
-
-    for player in players:
-        if not universal_rating_system.isRegistered(player):
-            universal_rating_system.registerPlayer(player)
-    
-    before_player_ratings = copy.deepcopy(universal_rating_system.getRankings())
-
-    # feeding in scores one game at a time
-    for _, row in game_records.iterrows():
-        score_wrapper(row, universal_rating_system, players)
-
-    after_player_ratings = universal_rating_system.getRankings()
-
-    return before_player_ratings, after_player_ratings
-        
