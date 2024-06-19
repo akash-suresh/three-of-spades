@@ -1,4 +1,4 @@
-from utils.data_preprocessor import get_players
+from utils.Tournament import Tournament
 import copy
 
 BASE_RATING = 1000
@@ -171,17 +171,18 @@ def score_wrapper(row, universal_rating_system, players):
 
 
 
-def compute_ranking(raw_df, universal_rating_system):
+def compute_ranking(tournament: Tournament, universal_rating_system: UniversalRatingSystem):
+    game_records = tournament.rawData
+    players = tournament.players
 
-    players = get_players(raw_df)
-    
     for player in players:
         if not universal_rating_system.isRegistered(player):
             universal_rating_system.registerPlayer(player)
     
     before_player_ratings = copy.deepcopy(universal_rating_system.getRankings())
 
-    for _, row in raw_df.iterrows():
+    # feeding in scores one game at a time
+    for _, row in game_records.iterrows():
         score_wrapper(row, universal_rating_system, players)
 
     after_player_ratings = universal_rating_system.getRankings()
