@@ -1,5 +1,6 @@
 from utils.constants import TournamentTypes
 from utils.data_cruncher import get_championship_details
+from utils.plot_utils import plot_leaderboard_barplot_v2
 
 
 class Tournament:
@@ -25,7 +26,12 @@ class Tournament:
         self.playerStats = player_stats
         self.gameData = game_data
         
-
+    def getScoreBoard(self):
+        return self.playerStats
+    
+    def getLeaderboardBarplot(self, save_image: bool = False):
+        return plot_leaderboard_barplot_v2(self.playerStats, self.tournamentType, self.tournamentNumber, save_image)
+    
 '''
 from typing import List, Union
 
