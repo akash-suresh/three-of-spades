@@ -1,6 +1,8 @@
 from utils.Tournament import Tournament
 import copy
 
+from utils.constants import TOURNAMENT_LIST_CHRONOLOGICAL
+
 BASE_RATING = 1000
 DENOMINATOR = 200
 
@@ -58,41 +60,6 @@ class UniversalRatingSystem:
         # todo - maintain ranking change after every tournament
         # self.tournament_map = {}
 
-
-    def printRankingChange(self, before, after=None):
-        if after is None:
-            after = self.player_map
-        
-        # sorting based on ratings
-        old_rankings =  rankPlayerMap(before)
-        new_rankings =  rankPlayerMap(after)
-        
-        old_ranks = getPlayersToRankMapping(old_rankings)
-        new_ranks = getPlayersToRankMapping(new_rankings)
-
-        rank = 1
-        for player in new_rankings.values():
-            new_rating = player.rating
-            old_rating = old_rankings[player.name].rating
-
-            rating_change = round(new_rating - old_rating, 1)
-            rank_change = old_ranks[player.name] - new_ranks[player.name]
-
-            if rank_change > 0:
-                rank_change = u"\u25B2"+f"{rank_change}"
-            elif rank_change < 0:
-                rank_change = u"\u25BC"+f"{abs(rank_change)}"
-            else:
-                rank_change = "-"
-
-
-            if rating_change > 0:
-                rating_change = f'+{rating_change}'
-            
-            # todo - print like table
-            print(f'#{rank} [{rank_change}] {player.name} | {player.rating} ({rating_change})')
-            rank = rank + 1
-        print('\n -----------------------------')
 
 
     def print(self):
@@ -155,6 +122,38 @@ class UniversalRatingSystem:
     
     # def save(self):
 
+def printRankingChange(before, after):
+    
+    # sorting based on ratings
+    old_rankings =  rankPlayerMap(before)
+    new_rankings =  rankPlayerMap(after)
+    
+    old_ranks = getPlayersToRankMapping(old_rankings)
+    new_ranks = getPlayersToRankMapping(new_rankings)
+
+    rank = 1
+    for player in new_rankings.values():
+        new_rating = player.rating
+        old_rating = old_rankings[player.name].rating
+
+        rating_change = round(new_rating - old_rating, 1)
+        rank_change = old_ranks[player.name] - new_ranks[player.name]
+
+        if rank_change > 0:
+            rank_change = u"\u25B2"+f"{rank_change}"
+        elif rank_change < 0:
+            rank_change = u"\u25BC"+f"{abs(rank_change)}"
+        else:
+            rank_change = "-"
+
+
+        if rating_change > 0:
+            rating_change = f'+{rating_change}'
+        
+        # todo - print like table
+        print(f'#{rank} [{rank_change}] {player.name} | {player.rating} ({rating_change})')
+        rank = rank + 1
+    print('\n -----------------------------')
 
 def calculate_rating_change(winning_team, losing_team, winning_team_points):
     assert len(winning_team) == len(winning_team_points)
@@ -193,3 +192,12 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
         player.rating -= adjusted_points
         player.rating = round(player.rating, 2)
 
+
+def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem):
+
+    for TOURNAMENT_TYPE, TOURNEY_NUMBER in TOURNAMENT_LIST_CHRONOLOGICAL:
+        
+        tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER)
+        
+        _, _ = universal_rating_system.addTournamentData(tournament)
+        
