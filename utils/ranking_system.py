@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from utils.Tournament import Tournament
 import copy
 
@@ -75,6 +76,7 @@ class UniversalRatingSystem:
         self.showRankingChange(tourney_key)
     
     def showRankingChange(self, tourney_key: str):
+        print(f'\n{tourney_key}')
         before = self.preTournamentRatings[tourney_key]
         after = self.postTournamentRatings[tourney_key]
         printRankingChange(before, after)
@@ -218,9 +220,9 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
 
 def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem):
 
-    for TOURNAMENT_TYPE, TOURNEY_NUMBER in TOURNAMENT_LIST_CHRONOLOGICAL:
+    print('Going back in time!')
+    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL):
         
-        tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER)
+        tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER, display = False)
         
         _, _ = universal_rating_system.addTournamentData(tournament)
-        

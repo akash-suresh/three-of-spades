@@ -18,7 +18,7 @@ class Tournament:
     trioStats: pd.DataFrame
     bidAndWonStats:pd.DataFrame
 
-    def __init__(self, tournament_type: TournamentTypes, tournament_number: int):
+    def __init__(self, tournament_type: TournamentTypes, tournament_number: int, display: bool = True):
         self.tournamentType = tournament_type 
         self.tournamentNumber = tournament_number
         
@@ -29,10 +29,18 @@ class Tournament:
         self.players = players
         self.playerStats = player_stats
         self.gameData = game_data
+
+        if display:
+            self.printTournamentHeader()
         
         self.pairwiseStats = get_pairwise_stats(self.rawData, min_num_games=10)
         self.trioStats = get_tri_stats(self.rawData, min_num_games=5)
         self.bidAndWonStats = get_bid_and_won_stats(self.rawData)
+
+    def printTournamentHeader(self):
+        
+        print(f'> 3 of Spades {self.display()}')
+        print(f'Players participating in this {self.tournamentType.display()} are : {self.players}')
 
     def num(self):
         return self.tournamentNumber
