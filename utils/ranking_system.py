@@ -158,10 +158,10 @@ def printRankingChange(before, after):
 
     rank = 1
     for player in new_rankings.values():
-        new_rating = player.rating
+        new_rating = int(player.rating)
         old_rating = old_rankings[player.name].rating
 
-        rating_change = round(new_rating - old_rating, 1)
+        rating_change = int(new_rating - old_rating)
         rank_change = old_ranks[player.name] - new_ranks[player.name]
 
         if rank_change > 0:
@@ -176,7 +176,7 @@ def printRankingChange(before, after):
             rating_change = f'+{rating_change}'
         
         # todo - print like table
-        print(f'#{rank} [{rank_change}] {player.name} | {player.rating} ({rating_change})')
+        print(f'#{rank} [{rank_change}] {player.name} | {new_rating} ({rating_change})')
         rank = rank + 1
     print('\n -----------------------------')
 
