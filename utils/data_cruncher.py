@@ -28,17 +28,15 @@ def get_player_stats(raw_df):
   return player_stats
 
 
-def get_championship_details(tourney_number, tournament_type):
+def get_championship_details(tourney_number, tournament_type, save_csv = False):
     
     raw_df = get_tourney_data_v2(tourney_number, tournament_type)
     game_data = get_game_data_as_timeseries(raw_df)
     players = get_players(raw_df)
 
-    print(f'## 3 of Spades {tournament_type.display()} - {tourney_number}')
-    print(f'Players participating in this {tournament_type.display()} are : {players}')
-
     player_stats = get_player_stats(raw_df)
-    player_stats.to_csv(f'tourney_data/graphs/{tournament_type.code()}{tourney_number}_player_stats.csv')
+    if save_csv:
+      player_stats.to_csv(f'tourney_data/graphs/{tournament_type.code()}{tourney_number}_player_stats.csv')
 
     return raw_df, players, game_data, player_stats
 

@@ -1,13 +1,17 @@
-from utils.data_preprocessor import get_players
+from tqdm import tqdm
+from utils.Tournament import Tournament
 import copy
+
+from utils.constants import TOURNAMENT_LIST_CHRONOLOGICAL
 
 BASE_RATING = 1000
 DENOMINATOR = 200
 
 class PlayerProfile:
-    def __init__(self, name, rating=BASE_RATING):
+    def __init__(self, name, rating):
         self.name = name
         self.rating = rating
+        self.bidAndWon = 0
 
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -49,47 +53,33 @@ def getPlayersToRankMapping(rankings):
         rank = rank + 1
     return player_to_rank
 
+
 class UniversalRatingSystem:
-    def __init__(self, rating=BASE_RATING):
+
+    def __init__(self):
         self.player_map = {}
-        # todo - maintain ranking change after every tournament
-        # self.tournament_map = {}
+        self.tournaments = []
+        self.preTournamentRatings = {}
+        self.postTournamentRatings = {}
 
+    def getRankingsSnapshot(self):
+        return copy.deepcopy(self.getRankings())
     
-    def printRankingChange(self, before, after=None):
-        if after is None:
-            after = self.player_map
+    def showRankingChange(self, tournament: Tournament, load_by_default = False):
+        tourney_key = tournament.display()
+
+        if tourney_key not in self.tournaments:
+            if not load_by_default:
+                raise Exception('Missing Tournament: Run addTournamentData() or pass load_by_defaullt=True to load previous tournaments')
+            load_tournaments_from_history(self)
         
-        # sorting based on ratings
-        old_rankings =  rankPlayerMap(before)
-        new_rankings =  rankPlayerMap(after)
-        
-        old_ranks = getPlayersToRankMapping(old_rankings)
-        new_ranks = getPlayersToRankMapping(new_rankings)
-
-        rank = 1
-        for player in new_rankings.values():
-            new_rating = player.rating
-            old_rating = old_rankings[player.name].rating
-
-            rating_change = round(new_rating - old_rating, 1)
-            rank_change = old_ranks[player.name] - new_ranks[player.name]
-
-            if rank_change > 0:
-                rank_change = u"\u25B2"+f"{rank_change}"
-            elif rank_change < 0:
-                rank_change = u"\u25BC"+f"{abs(rank_change)}"
-            else:
-                rank_change = "-"
-
-
-            if rating_change > 0:
-                rating_change = f'+{rating_change}'
-            
-            # todo - print like table
-            print(f'#{rank} [{rank_change}] {player.name} | {player.rating} ({rating_change})')
-            rank = rank + 1
-        print('\n -----------------------------')
+        self.printRankingChange(tourney_key)
+    
+    def printRankingChange(self, tourney_key: str):
+        print(f'\n{tourney_key}')
+        before = self.preTournamentRatings[tourney_key]
+        after = self.postTournamentRatings[tourney_key]
+        printRankingChange(before, after)
 
 
     def print(self):
@@ -105,19 +95,90 @@ class UniversalRatingSystem:
         return (player_name in self.player_map)
     
     def registerPlayer(self, player_name):
-        self.player_map[player_name] = PlayerProfile(player_name)
+        self.player_map[player_name] = PlayerProfile(player_name, rating=BASE_RATING)
 
     def getPlayerProfile(self, player_name):
-        if not self.isRegistered(player_name):
-            # return exception
-            return None
+        assert self.isRegistered(player_name)
+
         return self.player_map[player_name]
     
+    # Records the game
+    def record_game(self, row, players):
+        # Define teams and base points
+        winning_team = []
+        losing_team = []
+        winning_team_points = []
+
+        for player in players:
+            if row[player] > 0:
+                winning_team.append(self.getPlayerProfile(player))
+                winning_team_points.append(row[player])
+            else:
+                losing_team.append(self.getPlayerProfile(player))
+
+        calculate_rating_change(winning_team, losing_team, winning_team_points)
+
+    def addTournamentData(self, tournament: Tournament):
+        game_records = tournament.rawData
+        players = tournament.players
+        tourney_key = tournament.display()
+
+        self.tournaments.append(tourney_key)
+
+        # check for any new players
+        for player in players:
+            if not self.isRegistered(player):
+                self.registerPlayer(player)
+        
+        before_player_ratings = self.getRankingsSnapshot()
+        self.preTournamentRatings[tourney_key] = before_player_ratings
+
+        # feeding in scores one game at a time
+        for _, row in game_records.iterrows():
+            self.record_game(row, players)
+
+        after_player_ratings = self.getRankingsSnapshot()
+        self.postTournamentRatings[tourney_key] = after_player_ratings
+        
+        return before_player_ratings, after_player_ratings
+
     # load from stored files
     # def load(self):
     
     # def save(self):
 
+def printRankingChange(before, after):
+    
+    # sorting based on ratings
+    old_rankings =  rankPlayerMap(before)
+    new_rankings =  rankPlayerMap(after)
+    
+    old_ranks = getPlayersToRankMapping(old_rankings)
+    new_ranks = getPlayersToRankMapping(new_rankings)
+
+    rank = 1
+    for player in new_rankings.values():
+        new_rating = int(player.rating)
+        old_rating = old_rankings[player.name].rating
+
+        rating_change = int(new_rating - old_rating)
+        rank_change = old_ranks[player.name] - new_ranks[player.name]
+
+        if rank_change > 0:
+            rank_change = u"\u25B2"+f"{rank_change}"
+        elif rank_change < 0:
+            rank_change = u"\u25BC"+f"{abs(rank_change)}"
+        else:
+            rank_change = "-"
+
+
+        if rating_change > 0:
+            rating_change = f'+{rating_change}'
+        
+        # todo - print like table
+        print(f'#{rank} [{rank_change}] {player.name} | {new_rating} ({rating_change})')
+        rank = rank + 1
+    print('\n -----------------------------')
 
 def calculate_rating_change(winning_team, losing_team, winning_team_points):
     assert len(winning_team) == len(winning_team_points)
@@ -147,6 +208,9 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
         player.rating += adjusted_points
         player.rating = round(player.rating, 2)
 
+        if player_points > bid:
+            player.bidAndWon += 1
+
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
@@ -154,37 +218,11 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
         player.rating = round(player.rating, 2)
 
 
-def score_wrapper(row, universal_rating_system, players):
-    # Define teams and base points
-    winning_team = []
-    losing_team = []
-    winning_team_points = []
-    
-    for player in players:
-        if row[player] > 0:
-            winning_team.append(universal_rating_system.getPlayerProfile(player))
-            winning_team_points.append(row[player])
-        else:
-            losing_team.append(universal_rating_system.getPlayerProfile(player))
+def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem):
 
-    calculate_rating_change(winning_team, losing_team, winning_team_points)
-
-
-
-def compute_ranking(raw_df, universal_rating_system):
-
-    players = get_players(raw_df)
-    
-    for player in players:
-        if not universal_rating_system.isRegistered(player):
-            universal_rating_system.registerPlayer(player)
-    
-    before_player_ratings = copy.deepcopy(universal_rating_system.getRankings())
-
-    for _, row in raw_df.iterrows():
-        score_wrapper(row, universal_rating_system, players)
-
-    after_player_ratings = universal_rating_system.getRankings()
-
-    return before_player_ratings, after_player_ratings
+    print('Going back in time!')
+    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL):
         
+        tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER, display = False)
+        
+        _, _ = universal_rating_system.addTournamentData(tournament)
