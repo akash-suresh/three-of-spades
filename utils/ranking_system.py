@@ -57,9 +57,27 @@ class UniversalRatingSystem:
 
     def __init__(self):
         self.player_map = {}
-        # todo - maintain ranking change after every tournament
-        # self.tournament_map = {}
+        self.tournaments = []
+        self.preTournamentRatings = {}
+        self.postTournamentRatings = {}
 
+    def getRankingsSnapshot(self):
+        return copy.deepcopy(self.getRankings())
+    
+    def showRankingChange(self, tournament: Tournament, load_by_default = False):
+        tourney_key = tournament.display()
+
+        if tourney_key not in self.tournaments:
+            if not load_by_default:
+                raise Exception('Missing Tournament: Run addTournamentData() or pass load_by_defaullt=True to load previous tournaments')
+            load_tournaments_from_history()
+        
+        self.showRankingChange(tourney_key)
+    
+    def showRankingChange(self, tourney_key: str):
+        before = self.preTournamentRatings[tourney_key]
+        after = self.postTournamentRatings[tourney_key]
+        printRankingChange(before, after)
 
 
     def print(self):
@@ -101,20 +119,25 @@ class UniversalRatingSystem:
     def addTournamentData(self, tournament: Tournament):
         game_records = tournament.rawData
         players = tournament.players
+        tourney_key = tournament.display()
+
+        self.tournaments.append(tourney_key)
 
         # check for any new players
         for player in players:
             if not self.isRegistered(player):
                 self.registerPlayer(player)
         
-        before_player_ratings = copy.deepcopy(self.getRankings())
+        before_player_ratings = self.getRankingsSnapshot()
+        self.preTournamentRatings[tourney_key] = before_player_ratings
 
         # feeding in scores one game at a time
         for _, row in game_records.iterrows():
             self.record_game(row, players)
 
-        after_player_ratings = self.getRankings()
-
+        after_player_ratings = self.getRankingsSnapshot()
+        self.postTournamentRatings[tourney_key] = after_player_ratings
+        
         return before_player_ratings, after_player_ratings
 
     # load from stored files
