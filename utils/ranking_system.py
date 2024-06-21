@@ -71,11 +71,11 @@ class UniversalRatingSystem:
         if tourney_key not in self.tournaments:
             if not load_by_default:
                 raise Exception('Missing Tournament: Run addTournamentData() or pass load_by_defaullt=True to load previous tournaments')
-            load_tournaments_from_history()
+            load_tournaments_from_history(self)
         
-        self.showRankingChange(tourney_key)
+        self.printRankingChange(tourney_key)
     
-    def showRankingChange(self, tourney_key: str):
+    def printRankingChange(self, tourney_key: str):
         print(f'\n{tourney_key}')
         before = self.preTournamentRatings[tourney_key]
         after = self.postTournamentRatings[tourney_key]
