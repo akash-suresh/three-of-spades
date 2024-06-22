@@ -36,10 +36,10 @@ class PlayerProfile:
         self.rating = round(self.rating, 2)
 
     def winPercentage(self):
-        return round(100.0*(self.careerWins/self.careerGames), 1)
+        return int(100.0*(self.careerWins/self.careerGames))
 
     def bidAndWonPercentage(self):
-        return round(100.0*(self.bidAndWon/self.careerGames), 1)
+        return int(100.0*(self.bidAndWon/self.careerGames))
     
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -93,13 +93,8 @@ class UniversalRatingSystem:
     def getRankingsSnapshot(self):
         return copy.deepcopy(self.getRankings())
     
-    def showRankingChange(self, tournament: Tournament, load_by_default = False):
+    def showRankingChange(self, tournament: Tournament):
         tourney_key = tournament.display()
-
-        if tourney_key not in self.tournaments:
-            if not load_by_default:
-                raise Exception('Missing Tournament: Run addTournamentData() or pass load_by_defaullt=True to load previous tournaments')
-            load_tournaments_from_history(self)
         
         self.printRankingChange(tourney_key)
     
@@ -215,7 +210,9 @@ def printRankingChange(before, after):
 
     # Create DataFrame
     df = pd.DataFrame(output_data, columns=headers)
-    print(df.to_string(index=False))
+    df = df.style.hide()
+    display(df)
+    
     
     print('\n -----------------------------')
 
@@ -256,7 +253,8 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
 def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem):
 
     print('Going back in time!')
-    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL):
+    size = len(TOURNAMENT_LIST_CHRONOLOGICAL)
+    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL, position=0, leave=True, total=size):
         
         tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER, display = False)
         
