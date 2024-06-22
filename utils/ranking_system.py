@@ -180,8 +180,9 @@ def printRankingChange(before, after):
     new_ranks = getPlayersToRankMapping(new_rankings)
 
     rank = 1
-    headers = ['Rank', 'Player', 'Rating', 'Win%']
-    output_data = []
+    
+    player_rows = {}
+
     for player in new_rankings.values():
         new_rating = int(player.rating)
         old_rating = old_rankings[player.name].rating
@@ -200,16 +201,19 @@ def printRankingChange(before, after):
         if rating_change > 0:
             rating_change = f'+{rating_change}'
         
-        output_data.append([
-            f'#{rank} {rank_change}', 
-            player.name, 
-            f'{new_rating} ({rating_change})',
-            player.winPercentage()
-        ])
+        
+        player_rows[rank] = {
+            'Rank': f'#{rank} {rank_change}', 
+            'Player': player.name, 
+            'Rating': f'{new_rating} ({rating_change})',
+            '#Games': player.careerGames,
+            'Win %': player.winPercentage(),
+            'Bid+Win%': player.bidAndWonPercentage()
+        }
         rank = rank + 1
 
     # Create DataFrame
-    df = pd.DataFrame(output_data, columns=headers)
+    df = pd.DataFrame(player_rows).transpose()
     df = df.style.hide()
     display(df)
     
