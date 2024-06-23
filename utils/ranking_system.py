@@ -191,11 +191,11 @@ def printRankingChange(before, after):
         rank_change = old_ranks[player.name] - new_ranks[player.name]
 
         if rank_change > 0:
-            rank_change = u"[\u25B2"+f"{rank_change}]"
+            rank_change = u"\u25B2"+f" {rank_change}"
         elif rank_change < 0:
-            rank_change = u"[\u25BC"+f"{abs(rank_change)}]"
+            rank_change = u"\u25BC"+f" {abs(rank_change)}"
         else:
-            rank_change = "[--]"
+            rank_change = "-"
 
 
         if rating_change > 0:
@@ -203,7 +203,9 @@ def printRankingChange(before, after):
         
         
         player_rows[rank] = {
-            'Rank': f'#{rank} {rank_change}', 
+            # 'Rank': f'{rank} {rank_change}', 
+            'Rank': rank, 
+            'Change': rank_change,
             'Player': player.name, 
             'Rating': f'{new_rating} ({rating_change})',
             '#Games': player.careerGames,
