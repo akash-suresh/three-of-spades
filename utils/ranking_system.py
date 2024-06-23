@@ -41,6 +41,17 @@ class PlayerProfile:
     def bidAndWonPercentage(self):
         return int(100.0*(self.bidAndWon/self.careerGames))
     
+    def getDictForLeaderboard(self, new_rank, rank_change, new_rating, rating_change):
+        return {
+            'Rank': new_rank, 
+            'Change': rank_change,
+            'Player': self.name, 
+            'Rating': f'{new_rating} ({rating_change})',
+            '#Games': self.careerGames,
+            'Win %': self.winPercentage(),
+            'Bid+Win%': self.bidAndWonPercentage()
+        }
+    
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
 
@@ -180,8 +191,9 @@ def printRankingChange(before, after):
     new_ranks = getPlayersToRankMapping(new_rankings)
 
     rank = 1
-    headers = ['Rank', 'Player', 'Rating', 'Win%']
-    output_data = []
+    
+    player_rows = {}
+
     for player in new_rankings.values():
         new_rating = int(player.rating)
         old_rating = old_rankings[player.name].rating
@@ -190,26 +202,21 @@ def printRankingChange(before, after):
         rank_change = old_ranks[player.name] - new_ranks[player.name]
 
         if rank_change > 0:
-            rank_change = u"[\u25B2"+f"{rank_change}]"
+            rank_change = u"\u25B2"+f" {rank_change}"
         elif rank_change < 0:
-            rank_change = u"[\u25BC"+f"{abs(rank_change)}]"
+            rank_change = u"\u25BC"+f" {abs(rank_change)}"
         else:
-            rank_change = "[--]"
+            rank_change = "-"
 
 
         if rating_change > 0:
             rating_change = f'+{rating_change}'
         
-        output_data.append([
-            f'#{rank} {rank_change}', 
-            player.name, 
-            f'{new_rating} ({rating_change})',
-            player.winPercentage()
-        ])
+        player_rows[rank] = player.getDictForLeaderboard(rank, rank_change, new_rating, rating_change)
         rank = rank + 1
 
     # Create DataFrame
-    df = pd.DataFrame(output_data, columns=headers)
+    df = pd.DataFrame(player_rows).transpose()
     df = df.style.hide()
     display(df)
     
