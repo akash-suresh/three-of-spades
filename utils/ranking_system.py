@@ -1,3 +1,4 @@
+import pandas as pd
 from tqdm import tqdm
 from utils.Tournament import Tournament
 import copy
@@ -12,7 +13,34 @@ class PlayerProfile:
         self.name = name
         self.rating = rating
         self.bidAndWon = 0
+        self.careerGames = 0
+        self.careerWins = 0
+    
+    def register_win(self, adjusted_points, bid_and_won = False):
+        self.careerGames += 1
+        self.careerWins += 1
 
+        # updating rating
+        self.rating += adjusted_points
+        self.rating = round(self.rating, 2)
+
+        if bid_and_won:
+            self.bidAndWon += 1
+
+        
+    def register_loss(self, adjusted_points):
+        self.careerGames += 1
+
+        # updating rating
+        self.rating -= adjusted_points
+        self.rating = round(self.rating, 2)
+
+    def winPercentage(self):
+        return int(100.0*(self.careerWins/self.careerGames))
+
+    def bidAndWonPercentage(self):
+        return int(100.0*(self.bidAndWon/self.careerGames))
+    
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
 
@@ -65,13 +93,8 @@ class UniversalRatingSystem:
     def getRankingsSnapshot(self):
         return copy.deepcopy(self.getRankings())
     
-    def showRankingChange(self, tournament: Tournament, load_by_default = False):
+    def showRankingChange(self, tournament: Tournament):
         tourney_key = tournament.display()
-
-        if tourney_key not in self.tournaments:
-            if not load_by_default:
-                raise Exception('Missing Tournament: Run addTournamentData() or pass load_by_defaullt=True to load previous tournaments')
-            load_tournaments_from_history(self)
         
         self.printRankingChange(tourney_key)
     
@@ -157,6 +180,8 @@ def printRankingChange(before, after):
     new_ranks = getPlayersToRankMapping(new_rankings)
 
     rank = 1
+    headers = ['Rank', 'Player', 'Rating', 'Win%']
+    output_data = []
     for player in new_rankings.values():
         new_rating = int(player.rating)
         old_rating = old_rankings[player.name].rating
@@ -165,19 +190,30 @@ def printRankingChange(before, after):
         rank_change = old_ranks[player.name] - new_ranks[player.name]
 
         if rank_change > 0:
-            rank_change = u"\u25B2"+f"{rank_change}"
+            rank_change = u"[\u25B2"+f"{rank_change}]"
         elif rank_change < 0:
-            rank_change = u"\u25BC"+f"{abs(rank_change)}"
+            rank_change = u"[\u25BC"+f"{abs(rank_change)}]"
         else:
-            rank_change = "-"
+            rank_change = "[--]"
 
 
         if rating_change > 0:
             rating_change = f'+{rating_change}'
         
-        # todo - print like table
-        print(f'#{rank} [{rank_change}] {player.name} | {new_rating} ({rating_change})')
+        output_data.append([
+            f'#{rank} {rank_change}', 
+            player.name, 
+            f'{new_rating} ({rating_change})',
+            player.winPercentage()
+        ])
         rank = rank + 1
+
+    # Create DataFrame
+    df = pd.DataFrame(output_data, columns=headers)
+    df = df.style.hide()
+    display(df)
+    
+    
     print('\n -----------------------------')
 
 def calculate_rating_change(winning_team, losing_team, winning_team_points):
@@ -205,23 +241,20 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
     # Update ratings for players in winning team
     for player, player_points in zip(winning_team, winning_team_points):
         adjusted_points = (player_points/DENOMINATOR) * (1-adjustment_factor)
-        player.rating += adjusted_points
-        player.rating = round(player.rating, 2)
-
-        if player_points > bid:
-            player.bidAndWon += 1
-
+        # registering game in player object
+        player.register_win(adjusted_points, bid_and_won = (player_points>bid))
+        
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
-        player.rating -= adjusted_points
-        player.rating = round(player.rating, 2)
-
+        # registering game in player object
+        player.register_loss(adjusted_points)
 
 def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem):
 
     print('Going back in time!')
-    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL):
+    size = len(TOURNAMENT_LIST_CHRONOLOGICAL)
+    for TOURNAMENT_TYPE, TOURNEY_NUMBER in tqdm(TOURNAMENT_LIST_CHRONOLOGICAL, position=0, leave=True, total=size):
         
         tournament = Tournament(TOURNAMENT_TYPE, TOURNEY_NUMBER, display = False)
         
