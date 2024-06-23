@@ -41,6 +41,17 @@ class PlayerProfile:
     def bidAndWonPercentage(self):
         return int(100.0*(self.bidAndWon/self.careerGames))
     
+    def getDictForLeaderboard(self, new_rank, rank_change, new_rating, rating_change):
+        return {
+            'Rank': new_rank, 
+            'Change': rank_change,
+            'Player': self.name, 
+            'Rating': f'{new_rating} ({rating_change})',
+            '#Games': self.careerGames,
+            'Win %': self.winPercentage(),
+            'Bid+Win%': self.bidAndWonPercentage()
+        }
+    
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
 
@@ -201,17 +212,7 @@ def printRankingChange(before, after):
         if rating_change > 0:
             rating_change = f'+{rating_change}'
         
-        
-        player_rows[rank] = {
-            # 'Rank': f'{rank} {rank_change}', 
-            'Rank': rank, 
-            'Change': rank_change,
-            'Player': player.name, 
-            'Rating': f'{new_rating} ({rating_change})',
-            '#Games': player.careerGames,
-            'Win %': player.winPercentage(),
-            'Bid+Win%': player.bidAndWonPercentage()
-        }
+        player_rows[rank] = player.getDictForLeaderboard(rank, rank_change, new_rating, rating_change)
         rank = rank + 1
 
     # Create DataFrame
