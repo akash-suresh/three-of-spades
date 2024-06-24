@@ -77,7 +77,8 @@ class UniversalRatingSystem:
         print('\n -----------------------------')
 
     def getRankings(self):
-        return self.playerMap
+        # todo - use a better object?
+        return rankPlayerMap(self.playerMap)
 
     def isRegistered(self, player_name):
         return (player_name in self.playerMap)
@@ -135,11 +136,11 @@ class UniversalRatingSystem:
     
     # def save(self):
 
-def printRankingChange(before, after):
+def printRankingChange(old_rankings, new_rankings):
     
     # sorting based on ratings
-    old_rankings =  rankPlayerMap(before)
-    new_rankings =  rankPlayerMap(after)
+    # old_rankings =  rankPlayerMap(before)
+    # new_rankings =  rankPlayerMap(after)
     
     old_ranks = getPlayersToRankMapping(old_rankings)
     new_ranks = getPlayersToRankMapping(new_rankings)
