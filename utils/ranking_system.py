@@ -92,7 +92,7 @@ class UniversalRatingSystem:
         return self.playerMap[player_name]
     
     # Records the game
-    def record_game(self, row, players):
+    def recordGame(self, row, players, tournament):
         # Define teams and base points
         winning_team = []
         losing_team = []
@@ -105,7 +105,7 @@ class UniversalRatingSystem:
             else:
                 losing_team.append(self.getPlayerProfile(player))
 
-        calculate_rating_change(winning_team, losing_team, winning_team_points)
+        calculateRatingChange(winning_team, losing_team, winning_team_points, tournament)
 
     def addTournamentData(self, tournament: Tournament):
         game_records = tournament.rawData
@@ -124,7 +124,7 @@ class UniversalRatingSystem:
 
         # feeding in scores one game at a time
         for _, row in game_records.iterrows():
-            self.record_game(row, players)
+            self.recordGame(row, players, tournament)
 
         after_player_ratings = self.getRankingsSnapshot()
         self.postTournamentRatings[tourney_key] = after_player_ratings
@@ -178,7 +178,7 @@ def printRankingChange(old_rankings, new_rankings):
     
     print('\n -----------------------------')
 
-def calculate_rating_change(winning_team, losing_team, winning_team_points):
+def calculateRatingChange(winning_team, losing_team, winning_team_points, tournament):
     assert len(winning_team) == len(winning_team_points)
 
     bid = min(winning_team_points)
@@ -204,11 +204,11 @@ def calculate_rating_change(winning_team, losing_team, winning_team_points):
     for player, player_points in zip(winning_team, winning_team_points):
         adjusted_points = (player_points/DENOMINATOR) * (1-adjustment_factor)
         # registering game in player object
-        player.register_win(adjusted_points, bid_and_won = (player_points>bid))
+        player.registerGame(tournament, adjusted_points, is_win = True, bid_and_won = (player_points>bid))
         
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
         # registering game in player object
-        player.register_loss(adjusted_points)
+        player.registerGame(tournament, adjusted_points, is_win = False)
 
