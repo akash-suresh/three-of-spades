@@ -5,8 +5,9 @@ from utils.data_preprocessor import get_game_data_as_timeseries, get_players, ge
 
 # Get player stats from raw_df
 def get_player_stats(raw_df):
+  players = get_players(raw_df)
 
-  player_stats = raw_df.melt(id_vars=['Game ID'], var_name='Player', value_name='Points')
+  player_stats = raw_df.melt(id_vars=['Game ID'], value_vars = players, var_name='Player', value_name='Points')
   player_stats['Result'] = player_stats['Points'].apply(lambda x: 'Win' if x > 0 else 'Lose')
   # Calculate wins, losses, and win ratio
   player_stats['Wins'] = player_stats['Result'].apply(lambda x: 1 if x == 'Win' else 0)
@@ -49,7 +50,7 @@ def get_bid_and_won_stats(raw_df):
     bid_and_win[player] = 0
 
   for _, row in raw_df.iterrows():
-      x = row[1:]
+      x = row.loc[players]
       if(x.sum()%x.max()!=0):
         for player in players:
           if x[player] == x.max():
@@ -59,10 +60,11 @@ def get_bid_and_won_stats(raw_df):
   res = res.sort_values(by=['Bid and Won'], ascending = False)
   return res
 
-def get_pairwise_stats(df, min_num_games=10):
+def get_pairwise_stats(raw_df, min_num_games=10):
+  players = get_players(raw_df)
 
   # Calculate statistics for each pair of players when they are on the same team
-  same_team_stats = df.melt(id_vars=['Game ID'], var_name='Player', value_name='Points')
+  same_team_stats = raw_df.melt(id_vars=['Game ID'], value_vars = players, var_name='Player', value_name='Points')
   same_team_stats['Result'] = same_team_stats['Points'].apply(lambda x: 'Win' if x > 0 else 'Lose')
 
   same_team_stats['join_id'] = same_team_stats['Points'].apply(lambda x: 'Win' if x > 0 else 'Lose')
@@ -95,10 +97,11 @@ def get_pairwise_stats(df, min_num_games=10):
 
   return result
 
-def get_tri_stats(df, min_num_games=5):
+def get_tri_stats(raw_df, min_num_games=5):
+  players = get_players(raw_df)
 
   # Calculate statistics for each pair of players when they are on the same team
-  same_team_stats = df.melt(id_vars=['Game ID'], var_name='Player', value_name='Points')
+  same_team_stats = raw_df.melt(id_vars=['Game ID'], value_vars=players, var_name='Player', value_name='Points')
   same_team_stats['Result'] = same_team_stats['Points'].apply(lambda x: 'Win' if x > 0 else 'Lose')
   same_team_stats['join_id'] = same_team_stats['Points'].apply(lambda x: 'Win' if x > 0 else 'Lose')
 
