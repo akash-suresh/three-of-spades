@@ -1,7 +1,11 @@
 from enum import Enum
 
 # non-player columns
-NON_PLAYER_COLUMNS = {'Bidder'}
+NON_PLAYER_COLUMNS = {
+    'Bidder',
+    'Discard',
+    'Margin',
+}
 
 # class syntax
 class Players(Enum):
@@ -17,6 +21,7 @@ class TournamentTypes(Enum):
     CHAMPIONSHIP = 'championship'
     MINI_CHAMPIONSHIP = 'mini_championship'
     FRIENDLY = 'international_friendly'
+    TINY_CHAMPIONSHIP = 'tiny_championship'
 
     def display(self):
         splits = self.value.split('_')
@@ -62,4 +67,5 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.CHAMPIONSHIP, 8),
     (TournamentTypes.MINI_CHAMPIONSHIP, 3),
     (TournamentTypes.FRIENDLY, 2),
+    (TournamentTypes.TINY_CHAMPIONSHIP, 1),
 ]
