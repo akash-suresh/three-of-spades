@@ -8,16 +8,10 @@ from utils.constants import TournamentTypes
 BASE_RATING = 1000
 DENOMINATOR = 200
 
-# TOURNAMENT_WEIGHTAGE = {
-#     TournamentTypes.CHAMPIONSHIP: 1,
-#     TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
-#     TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
-#     TournamentTypes.FRIENDLY: 0.25,
-# }
 TOURNAMENT_WEIGHTAGE = {
     TournamentTypes.CHAMPIONSHIP: 1,
-    TournamentTypes.MINI_CHAMPIONSHIP: 1,
-    TournamentTypes.TINY_CHAMPIONSHIP: 1,
+    TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
+    TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
     TournamentTypes.FRIENDLY: 1,
 }
 
@@ -224,11 +218,11 @@ def calculateRatingChange(winning_team, losing_team, winning_team_points, tourna
     avg_winning_rating = sum(player.rating for player in winning_team) / len(winning_team)
     avg_losing_rating = sum(player.rating for player in losing_team) / len(losing_team)  
 
-    # Calculate adjustment factor based on rating difference
     rating_diff = avg_winning_rating - avg_losing_rating
     # if winning team is stronger --> rating_difference > 0
     # if winning team is weaker --> rating_difference < 0
     
+    # Calculate adjustment multiplier based on rating difference
     adj_mult = getAdjustmentMultiplier(rating_diff, tournament)
     
     # Update ratings for players in winning team

@@ -18,3 +18,7 @@ def load_tournaments_from_history(universal_rating_system: UniversalRatingSystem
         # reading 
         _, _ = universal_rating_system.addTournamentData(tournament)
 
+# helper function for testing
+def load_single_tournament(universal_rating_system: UniversalRatingSystem, tournament: Tournament):
+
+    _, _ = universal_rating_system.addTournamentData(tournament)
