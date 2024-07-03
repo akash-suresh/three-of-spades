@@ -3,8 +3,23 @@ from utils.Player import PlayerProfile
 from utils.Tournament import Tournament
 import copy
 
+from utils.constants import TournamentTypes
+
 BASE_RATING = 1000
 DENOMINATOR = 200
+
+# TOURNAMENT_WEIGHTAGE = {
+#     TournamentTypes.CHAMPIONSHIP: 1,
+#     TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
+#     TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
+#     TournamentTypes.FRIENDLY: 0.25,
+# }
+TOURNAMENT_WEIGHTAGE = {
+    TournamentTypes.CHAMPIONSHIP: 1,
+    TournamentTypes.MINI_CHAMPIONSHIP: 1,
+    TournamentTypes.TINY_CHAMPIONSHIP: 1,
+    TournamentTypes.FRIENDLY: 1,
+}
 
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -178,7 +193,29 @@ def printRankingChange(old_rankings, new_rankings):
     
     print('\n -----------------------------')
 
-def calculateRatingChange(winning_team, losing_team, winning_team_points, tournament):
+# rating_diff = avg_winning_rating - avg_losing_rating
+# if winning team is stronger --> rating_difference > 0
+# if winning team is weaker --> rating_difference < 0
+def getAdjustmentMultiplier(rating_diff, tournament):
+
+    # winsorizing diff to [-0.5, 0.5] range
+    winsorized_diff = max(-0.5, min(0.5, rating_diff/BASE_RATING))
+
+    # Calculate adjusted points for the winning team
+    # case 1 - both are equal --> adjustment_factor = 1
+    # case 2 - winning team is stronger --> adjustment_factor < 1 [reduce reward by x%]
+    # case 3 - winning team is weaker --> adjustment_factor > 1 [increase reward by x%]
+    adjustment_factor = (1-winsorized_diff)
+    
+    # get weightage for tournament type (see defn. of TOURNAMENT_WEIGHTAGE for more details)
+    weightage = TOURNAMENT_WEIGHTAGE[tournament.typ()]
+
+    final_reward_multiplier = (weightage/DENOMINATOR) * adjustment_factor
+
+    return final_reward_multiplier
+
+
+def calculateRatingChange(winning_team, losing_team, winning_team_points, tournament: Tournament):
     assert len(winning_team) == len(winning_team_points)
 
     bid = min(winning_team_points)
@@ -188,27 +225,21 @@ def calculateRatingChange(winning_team, losing_team, winning_team_points, tourna
     avg_losing_rating = sum(player.rating for player in losing_team) / len(losing_team)  
 
     # Calculate adjustment factor based on rating difference
-    rating_difference = avg_winning_rating - avg_losing_rating
+    rating_diff = avg_winning_rating - avg_losing_rating
     # if winning team is stronger --> rating_difference > 0
     # if winning team is weaker --> rating_difference < 0
-
-    # capping adjustment factor to [-0.5, 0.5] range
-    adjustment_factor = max(-0.5, min(0.5, rating_difference/BASE_RATING))
-
-    # Calculate adjusted points for the winning team
-    # case 1 - both are equal --> adjustment_factor = 0
-    # case 2 - winning team is stronger --> adjustment_factor > 0 [reduce reward by x%]
-    # case 3 - winning team is weaker --> adjustment_factor < 0 [increase reward by x%]
+    
+    adj_mult = getAdjustmentMultiplier(rating_diff, tournament)
     
     # Update ratings for players in winning team
     for player, player_points in zip(winning_team, winning_team_points):
-        adjusted_points = (player_points/DENOMINATOR) * (1-adjustment_factor)
+        adjusted_points = player_points * adj_mult
         # registering game in player object
         player.registerGame(tournament, adjusted_points, is_win = True, bid_and_won = (player_points>bid))
         
     # Update ratings for players in losing team
     for player in losing_team:
-        adjusted_points = (bid/DENOMINATOR) * (1-adjustment_factor)
+        adjusted_points = bid * adj_mult
         # registering game in player object
         player.registerGame(tournament, adjusted_points, is_win = False)
 
