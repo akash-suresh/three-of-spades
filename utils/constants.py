@@ -63,6 +63,7 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.MINI_CHAMPIONSHIP, 1),
     (TournamentTypes.CHAMPIONSHIP, 6),
     (TournamentTypes.CHAMPIONSHIP, 7),
+    (TournamentTypes.FRIENDLY, 1),
     (TournamentTypes.MINI_CHAMPIONSHIP, 2),
     (TournamentTypes.CHAMPIONSHIP, 8),
     (TournamentTypes.MINI_CHAMPIONSHIP, 3),
