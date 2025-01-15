@@ -52,6 +52,10 @@ def get_graph_path(tourney_number, plot_type):
     return f'tourney_data/graphs/C{tourney_number}_{plot_type}.png'
 
 
+def get_bid_and_won_path(tourney_number, tournament_type=TournamentTypes.CHAMPIONSHIP):
+    print()
+    return f'tourney_data/bid_and_won/{tournament_type.value}_{tourney_number}.csv'
+
 
 # all_tournaments
 TOURNAMENT_LIST_CHRONOLOGICAL = [
