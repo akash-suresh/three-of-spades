@@ -50,11 +50,12 @@ def get_bid_and_won_stats(raw_df):
     bid_and_win[player] = 0
 
   for _, row in raw_df.iterrows():
-      x = row.loc[players]
-      if(x.sum()%x.max()!=0):
-        for player in players:
-          if x[player] == x.max():
-            bid_and_win[player] += 1
+    # todo - refactor to use was_round_bid_and_won()
+    x = row.loc[players]
+    if(x.sum()%x.max()!=0):
+      for player in players:
+        if x[player] == x.max():
+          bid_and_win[player] += 1
 
   res = pd.DataFrame(bid_and_win.items(), columns=['Player', 'Bid and Won'])
   res = res.sort_values(by=['Bid and Won'], ascending = False)
@@ -142,3 +143,17 @@ def get_tri_stats(raw_df, min_num_games=5):
   result = result[result['TotalGames']>=min_num_games]
 
   return result
+
+# round is a df row which contains scores for one round
+def was_round_bid_and_won(round, players):
+    x = round.loc[players]
+
+    bid = x.max()
+    
+    if(x.sum()%x.max()!=0):
+      for player in players:
+        if x[player] == x.max():
+          bid = x[player] - 20
+          return True, player, bid
+
+    return False, None, bid
