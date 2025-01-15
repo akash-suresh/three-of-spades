@@ -157,3 +157,20 @@ def was_round_bid_and_won(round, players):
           return True, player, bid
 
     return False, None, bid
+
+
+def get_bid_and_won_data(raw_data, players):
+  bid_and_won_list = [] 
+  bid_list = []
+
+  for _, round in raw_data.iterrows():
+    bid_and_won, bidder, bid = was_round_bid_and_won(round, players)
+    if bid_and_won and 'Bidder' in round:
+      assert bidder == round['Bidder']
+    bid_and_won_list.append(bid_and_won)
+    bid_list.append(bid)
+      
+  raw_data.insert(loc=0, column='bid', value=pd.Series(bid_list))
+  raw_data.insert(loc=0, column='bid_and_won', value=pd.Series(bid_and_won_list))
+
+  return raw_data

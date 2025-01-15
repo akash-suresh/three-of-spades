@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from utils.constants import TournamentTypes, get_graph_path
-from utils.data_cruncher import get_bid_and_won_stats, get_championship_details, get_pairwise_stats, get_tri_stats
+from utils.data_cruncher import get_bid_and_won_data, get_bid_and_won_stats, get_championship_details, get_pairwise_stats, get_tri_stats
 
 
 class Tournament:
@@ -16,8 +16,9 @@ class Tournament:
     gameData: pd.DataFrame
     pairwiseStats: pd.DataFrame
     trioStats: pd.DataFrame
-    bidAndWonStats:pd.DataFrame
-
+    bidAndWonStats: pd.DataFrame
+    bidAndWonData: pd.DataFrame
+    
     def __init__(self, tournament_type: TournamentTypes, tournament_number: int, display: bool = True):
         self.tournamentType = tournament_type 
         self.tournamentNumber = tournament_number
@@ -36,6 +37,7 @@ class Tournament:
         self.pairwiseStats = get_pairwise_stats(self.rawData, min_num_games=10)
         self.trioStats = get_tri_stats(self.rawData, min_num_games=5)
         self.bidAndWonStats = get_bid_and_won_stats(self.rawData)
+        self.bidAndWonData = get_bid_and_won_data(self.rawData, self.players)
 
     def printTournamentHeader(self):
         
