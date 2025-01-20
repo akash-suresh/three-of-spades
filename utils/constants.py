@@ -75,4 +75,8 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.TINY_CHAMPIONSHIP, 4),
     (TournamentTypes.TINY_CHAMPIONSHIP, 5),
     (TournamentTypes.MINI_CHAMPIONSHIP, 5),
+    (TournamentTypes.MINI_CHAMPIONSHIP, 6), # manipal hospital - dad's surgery
+    (TournamentTypes.FRIENDLY, 3), # Abhi, Nihal visit home
+    (TournamentTypes.TINY_CHAMPIONSHIP, 6), # Skanda, Nats & Akash
+    (TournamentTypes.TINY_CHAMPIONSHIP, 7), # NYC 2025 
 ]
