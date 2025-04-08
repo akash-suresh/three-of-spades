@@ -79,4 +79,8 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.FRIENDLY, 3), # Abhi, Nihal visit home
     (TournamentTypes.TINY_CHAMPIONSHIP, 6), # Skanda, Nats & Akash
     (TournamentTypes.TINY_CHAMPIONSHIP, 7), # NYC 2025 
+    (TournamentTypes.TINY_CHAMPIONSHIP, 8),
+    (TournamentTypes.MINI_CHAMPIONSHIP, 7),
+    (TournamentTypes.TINY_CHAMPIONSHIP, 9),
+    (TournamentTypes.FRIENDLY, 4), # Abhi, Nihal visit home    
 ]
