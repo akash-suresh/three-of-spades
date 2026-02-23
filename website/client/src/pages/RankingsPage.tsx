@@ -259,6 +259,72 @@ export default function RankingsPage() {
               </div>
             </div>
 
+            {/* Bid Success Rate */}
+            {(() => {
+              const bidData = (data?.players || [])
+                .map((p) => {
+                  const cs = data?.careerStats?.[p];
+                  return {
+                    player: p,
+                    bidAttempts: cs?.bidAttempts ?? 0,
+                    bidWins: cs?.bidWins ?? 0,
+                    bidWinRate: cs?.bidWinRate ?? null,
+                  };
+                })
+                .filter((d) => d.bidAttempts > 0)
+                .sort((a, b) => (b.bidWinRate ?? 0) - (a.bidWinRate ?? 0));
+              if (bidData.length === 0) return null;
+              return (
+                <div className="felt-card rounded-lg overflow-hidden">
+                  <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(0.22 0.03 155)" }}>
+                    <h2 className="font-semibold" style={{ fontFamily: "'Playfair Display', serif", color: "oklch(0.92 0.015 85)" }}>
+                      Bid Success Rate
+                    </h2>
+                    <p className="text-xs mt-0.5" style={{ color: "oklch(0.50 0.02 85)" }}>
+                      Career bid conversion across all tournaments with bidder tracking
+                    </p>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {bidData.map((d, i) => {
+                      const pct = d.bidWinRate ?? 0;
+                      const maxPct = bidData[0].bidWinRate ?? 1;
+                      const barWidth = Math.round((pct / maxPct) * 100);
+                      return (
+                        <motion.div
+                          key={d.player}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          className="flex items-center gap-3"
+                        >
+                          <div className="w-20 text-sm font-medium shrink-0" style={{ color: getPlayerColor(d.player) }}>
+                            {d.player}
+                          </div>
+                          <div className="flex-1 relative h-6 rounded overflow-hidden" style={{ background: "oklch(0.14 0.018 155)" }}>
+                            <div
+                              className="absolute inset-y-0 left-0 rounded transition-all"
+                              style={{ width: `${barWidth}%`, background: getPlayerColor(d.player) + "55", borderRight: `2px solid ${getPlayerColor(d.player)}` }}
+                            />
+                          </div>
+                          <div className="w-28 text-right shrink-0">
+                            <span className="rank-number text-base font-bold" style={{ color: "oklch(0.88 0.015 85)" }}>
+                              {pct}%
+                            </span>
+                            <span className="text-xs ml-1.5" style={{ color: "oklch(0.50 0.02 85)" }}>
+                              {d.bidWins}W / {d.bidAttempts}
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    <p className="text-xs pt-2" style={{ color: "oklch(0.40 0.02 85)" }}>
+                      Based on {(data?.tournaments || []).filter((t: any) => t.hasBidderData).length} tournaments with bidder tracking
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Player Radar + Selector */}
             <div className="felt-card rounded-lg overflow-hidden">
               <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid oklch(0.22 0.03 155)" }}>

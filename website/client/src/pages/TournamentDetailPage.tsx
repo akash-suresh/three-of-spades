@@ -843,29 +843,74 @@ export default function TournamentDetailPage() {
               <div className="felt-card rounded-lg overflow-hidden">
                 <SectionHeader
                   title="Bid & Won"
-                  subtitle="Number of rounds where this player bid and successfully won the round"
+                  subtitle={
+                    tournament.hasBidderData
+                      ? "Bid success rate for this tournament — attempts, wins, and conversion rate"
+                      : "Estimated bid wins (bidder column not available for this tournament)"
+                  }
                 />
                 <div className="p-5">
-                  <div className="flex flex-wrap gap-4">
-                    {tournament.bidAndWon.map((b, i) => (
-                      <motion.div
-                        key={b.Player}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.07 }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg"
-                        style={{ background: "oklch(0.14 0.018 155)", border: "1px solid oklch(0.22 0.03 155)" }}
-                      >
-                        <Target size={16} style={{ color: getPlayerColor(b.Player) }} />
-                        <div>
-                          <div className="font-medium text-sm" style={{ color: getPlayerColor(b.Player) }}>{b.Player}</div>
-                          <div className="rank-number text-lg font-bold" style={{ color: "oklch(0.88 0.015 85)" }}>
-                            {b.BidAndWon}
+                  {tournament.hasBidderData ? (
+                    /* Named-bidder view: show attempts / wins / rate */
+                    <div className="flex flex-wrap gap-4">
+                      {tournament.bidAndWon
+                        .filter((b) => (tournament.bidStatsByPlayer?.[b.Player]?.bidAttempts ?? 0) > 0)
+                        .sort((a, b) => {
+                          const rA = tournament.bidStatsByPlayer?.[a.Player]?.bidWinRate ?? 0;
+                          const rB = tournament.bidStatsByPlayer?.[b.Player]?.bidWinRate ?? 0;
+                          return rB - rA;
+                        })
+                        .map((b, i) => {
+                          const bs = tournament.bidStatsByPlayer?.[b.Player];
+                          if (!bs) return null;
+                          return (
+                            <motion.div
+                              key={b.Player}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.07 }}
+                              className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                              style={{ background: "oklch(0.14 0.018 155)", border: "1px solid oklch(0.22 0.03 155)" }}
+                            >
+                              <Target size={16} style={{ color: getPlayerColor(b.Player) }} />
+                              <div>
+                                <div className="font-medium text-sm" style={{ color: getPlayerColor(b.Player) }}>{b.Player}</div>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                  <span className="rank-number text-lg font-bold" style={{ color: "oklch(0.88 0.015 85)" }}>
+                                    {bs.bidWinRate !== null ? `${bs.bidWinRate}%` : "—"}
+                                  </span>
+                                  <span className="text-xs" style={{ color: "oklch(0.50 0.02 85)" }}>
+                                    {bs.bidWins}W / {bs.bidAttempts}
+                                  </span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    /* Heuristic view: raw count with disclaimer */
+                    <div className="flex flex-wrap gap-4">
+                      {tournament.bidAndWon.map((b, i) => (
+                        <motion.div
+                          key={b.Player}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.07 }}
+                          className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                          style={{ background: "oklch(0.14 0.018 155)", border: "1px solid oklch(0.22 0.03 155)" }}
+                        >
+                          <Target size={16} style={{ color: getPlayerColor(b.Player) }} />
+                          <div>
+                            <div className="font-medium text-sm" style={{ color: getPlayerColor(b.Player) }}>{b.Player}</div>
+                            <div className="rank-number text-lg font-bold" style={{ color: "oklch(0.88 0.015 85)" }}>
+                              {b.BidAndWon}
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

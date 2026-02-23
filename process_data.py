@@ -297,6 +297,8 @@ class PlayerProfile:
         self.name = name
         self.rating = float(rating)
         self.bidAndWon = 0
+        self.bidAttempts = 0   # rounds where this player was the named bidder
+        self.bidWins = 0       # rounds where they bid AND scored > 0
         self.careerGames = 0
         self.careerWins = 0
         self.winStreak = 0
@@ -313,7 +315,8 @@ class PlayerProfile:
         self.winStreak = 0
         self.lossStreak = 0
 
-    def register_game(self, tourney_key, adjusted_points, is_win, bid_and_won=False):
+    def register_game(self, tourney_key, adjusted_points, is_win, bid_and_won=False,
+                       is_named_bidder=False, named_bid_won=False):
         if tourney_key != self.currentTournament:
             self.new_tournament_start(tourney_key)
         if is_win:
@@ -327,6 +330,11 @@ class PlayerProfile:
             self.careerGames += 1
             self.rating -= adjusted_points
             self.rating = round(self.rating, 2)
+        # Track named-bidder stats (only for tournaments with a Bidder column)
+        if is_named_bidder:
+            self.bidAttempts += 1
+            if named_bid_won:
+                self.bidWins += 1
         self._record_streaks(is_win)
 
     def _record_streaks(self, is_win):
@@ -350,6 +358,12 @@ class PlayerProfile:
 
     def bid_and_won_percentage(self):
         return int(100.0 * self.bidAndWon / self.careerGames) if self.careerGames else 0
+
+    def bid_win_rate(self):
+        """Win rate when the player is the named bidder (None if no bid data)."""
+        if self.bidAttempts == 0:
+            return None
+        return round(100.0 * self.bidWins / self.bidAttempts, 1)
 
     def snapshot(self):
         return copy.copy(self)
@@ -399,11 +413,15 @@ def compute_overall_rankings(tournaments_raw):
         for p in players:
             get_profile(p)
 
+        # Determine if this tournament has a named Bidder column
+        has_bidder_col = "Bidder" in raw_df.columns
+
         # Process game by game
         for _, row in raw_df.iterrows():
             winning_team = []
             winning_points = []
             losing_team = []
+            named_bidder = str(row["Bidder"]).strip() if has_bidder_col else None
 
             for p in players:
                 score = int(row[p])
@@ -423,10 +441,16 @@ def compute_overall_rankings(tournaments_raw):
             bid = min(winning_points)
 
             for pl, pts in zip(winning_team, winning_points):
+                is_named_bidder = has_bidder_col and (pl.name == named_bidder)
                 pl.register_game(tourney_key, pts * adj_mult, is_win=True,
-                                  bid_and_won=(pts > bid))
+                                  bid_and_won=(pts > bid),
+                                  is_named_bidder=is_named_bidder,
+                                  named_bid_won=is_named_bidder)  # won = scored > 0
             for pl in losing_team:
-                pl.register_game(tourney_key, bid * adj_mult, is_win=False)
+                is_named_bidder = has_bidder_col and (pl.name == named_bidder)
+                pl.register_game(tourney_key, bid * adj_mult, is_win=False,
+                                  is_named_bidder=is_named_bidder,
+                                  named_bid_won=False)  # bidder lost this round
 
         # Snapshot AFTER
         after_snapshot = {
@@ -472,6 +496,9 @@ def compute_overall_rankings(tournaments_raw):
                 "careerGames": after_r.careerGames,
                 "winPct": after_r.win_percentage(),
                 "bidAndWonPct": after_r.bid_and_won_percentage(),
+                "bidAttempts": after_r.bidAttempts,
+                "bidWins": after_r.bidWins,
+                "bidWinRate": after_r.bid_win_rate(),
                 "bestWinStreak": after_r.bestWinStreak,
                 "worstLossStreak": after_r.worstLossStreak,
                 "numFivles": after_r.numFivles,
@@ -539,9 +566,21 @@ def process_all_tournaments():
         trio_df = get_tri_stats(raw_df, players, min_num_games=5)
         trio_stats = trio_df.to_dict(orient="records")
 
-        # ── Bid and Won ──
+        # ── Bid and Won (heuristic) ──
         baw_df = get_bid_and_won_stats(raw_df, players)
         bid_and_won = baw_df.to_dict(orient="records")
+
+        # ── Per-tournament named-bidder stats (only when Bidder column exists) ──
+        bid_stats_by_player = {}  # player → {attempts, wins, winRate}
+        if "Bidder" in raw_df.columns:
+            for p in players:
+                attempts = (raw_df["Bidder"] == p).sum()
+                wins = ((raw_df["Bidder"] == p) & (raw_df[p] > 0)).sum()
+                bid_stats_by_player[p] = {
+                    "bidAttempts": int(attempts),
+                    "bidWins": int(wins),
+                    "bidWinRate": round(100.0 * wins / attempts, 1) if attempts > 0 else None,
+                }
 
         # ── Per-round scores (diff of cumsum) and consistency stats ──
         round_scores = {}  # player -> list of per-round scores
@@ -600,6 +639,8 @@ def process_all_tournaments():
             "pairwiseStats": pairwise,
             "trioStats": trio_stats,
             "bidAndWon": bid_and_won,
+            "bidStatsByPlayer": bid_stats_by_player,
+            "hasBidderData": "Bidder" in raw_df.columns,
             "consistencyStats": consistency_stats,
             # Keep raw_df for Elo processing (will be stripped before JSON output)
             "_raw_df": raw_df,
@@ -710,6 +751,9 @@ def main():
                 "winPct": prof.win_percentage(),
                 "bidAndWon": prof.bidAndWon,
                 "bidAndWonPct": prof.bid_and_won_percentage(),
+                "bidAttempts": prof.bidAttempts,
+                "bidWins": prof.bidWins,
+                "bidWinRate": prof.bid_win_rate(),
                 "bestWinStreak": prof.bestWinStreak,
                 "worstLossStreak": prof.worstLossStreak,
                 "numFivles": prof.numFivles,

@@ -69,6 +69,9 @@ export interface TournamentPlayerSnapshot {
   careerGames: number;
   winPct: number;
   bidAndWonPct: number;
+  bidAttempts: number;    // 0 when tournament has no Bidder column
+  bidWins: number;        // 0 when tournament has no Bidder column
+  bidWinRate: number | null; // null when bidAttempts == 0
   bestWinStreak: number;
   worstLossStreak: number;
   numFivles: number;
@@ -82,6 +85,9 @@ export interface CareerStats {
   winPct: number;
   bidAndWon: number;
   bidAndWonPct: number;
+  bidAttempts: number;    // total rounds as named bidder across all tournaments with Bidder column
+  bidWins: number;        // rounds where they bid and scored > 0
+  bidWinRate: number | null; // null when bidAttempts == 0
   bestWinStreak: number;
   worstLossStreak: number;
   numFivles: number;
@@ -106,6 +112,8 @@ export interface Tournament {
   pairwiseStats: PairwiseStat[];
   trioStats: TrioStat[];
   bidAndWon: BidAndWonStat[];
+  bidStatsByPlayer: Record<string, { bidAttempts: number; bidWins: number; bidWinRate: number | null }>;
+  hasBidderData: boolean;   // true when the source CSV had a Bidder column
   consistencyStats: Record<string, ConsistencyStat>;
 }
 
