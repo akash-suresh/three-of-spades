@@ -372,10 +372,7 @@ export default function TournamentDetailPage() {
 
             {/* ── 2. Final Standings ───────────────────────────────────────── */}
             <div className="felt-card rounded-lg overflow-hidden">
-              <SectionHeader
-                title="Final Standings"
-                subtitle="Win Rate and Avg Points include zero-score rounds."
-              />
+              <SectionHeader title="Final Standings" />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
