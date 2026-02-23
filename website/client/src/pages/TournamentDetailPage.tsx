@@ -32,6 +32,8 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   BarChart, Bar, Cell, ReferenceLine,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ScatterChart, Scatter,
 } from "recharts";
 
 // ── Shared card header ────────────────────────────────────────────────────────
@@ -139,6 +141,138 @@ export default function TournamentDetailPage() {
     totalPoints: s.TotalPoints,
   }));
 
+  // ── Widget 1: Rating Swing cards ────────────────────────────────────────
+  const ratingSwings = snapshot
+    ? Object.entries(snapshot)
+        .filter(([, s]) => !(s as any).isGuest)
+        .map(([player, s]) => ({ player, change: s.ratingChange, before: s.ratingBefore, after: s.ratingAfter }))
+        .sort((a, b) => b.change - a.change)
+    : [];
+  const biggestGainer = ratingSwings[0];
+  const biggestLoser = ratingSwings[ratingSwings.length - 1];
+
+  // ── Widget 2: Momentum chart (adaptive rolling win rate) ───────────────────
+  // Use a larger window for longer tournaments to reduce noise:
+  //   < 30 rounds  → 5-game window
+  //   30–59 rounds → 8-game window
+  //   60+ rounds   → 10-game window
+  const momentumWindow = (() => {
+    const n = tournament?.totalGames ?? 0;
+    if (n >= 60) return 10;
+    if (n >= 30) return 8;
+    return 5;
+  })();
+  const momentumData = (() => {
+    const gamePoints = tournament?.gameData || [];
+    const W = momentumWindow;
+    if (gamePoints.length < W) return [];
+    // Use the direct won_<player> boolean from the data pipeline (1 = scored > 0 that round)
+    return gamePoints.slice(W - 1).map((_, idx) => {
+      const window = gamePoints.slice(idx, idx + W);
+      const row: Record<string, number> = { game: gamePoints[idx + W - 1].game };
+      players.forEach((p) => {
+        const wins = window.filter((pt) => (pt[`won_${p}`] ?? 0) === 1).length;
+        row[p] = Math.round((wins / W) * 100);
+      });
+      return row;
+    });
+  })();
+
+  // ── Widget 4: Partnership matrix data ────────────────────────────────────
+  // Already in tournament.pairwiseStats — just need best pair
+  const bestPair = tournament?.pairwiseStats.length
+    ? [...tournament.pairwiseStats].sort((a, b) => b.WinPercentage - a.WinPercentage)[0]
+    : null;
+
+  // ── Widget 5: Dream Team (best trio) ─────────────────────────────────────
+  const dreamTeam = tournament?.trioStats.length
+    ? [...tournament.trioStats].sort((a, b) => b.WinPercentage - a.WinPercentage)[0]
+    : null;
+
+  // ── Consistency stats ────────────────────────────────────────────
+  const consistencyStats = tournament?.consistencyStats || {};
+
+  // ── Widget 6: Auto-generated "at a glance" summary ────────────────────────
+  const glanceSummary = (() => {
+    if (!tournament || tournament.playerStats.length < 2) return null;
+    const ps = tournament.playerStats;
+    const winner = ps[0];
+    const runnerUp = ps[1];
+    const last = ps[ps.length - 1];
+    const gap = winner.TotalPoints - runnerUp.TotalPoints;
+
+    // Dominant win: gap > 10% of winner's total
+    const isDominant = gap > winner.TotalPoints * 0.10;
+    // Close finish: gap < 3% of winner's total
+    const isClose = gap < winner.TotalPoints * 0.03;
+
+    // Find the most consistent player (lowest CV)
+    const cvEntries = Object.entries(consistencyStats)
+      .filter(([, cs]) => cs)
+      .sort(([, a], [, b]) => a.cv - b.cv);
+    const mostConsistent = cvEntries[0]?.[0];
+    // mostStreaky available for future use
+    // const mostStreaky = cvEntries[cvEntries.length - 1]?.[0];
+
+    // Find biggest momentum swing from momentumData
+    let bigMomentumPlayer: string | null = null;
+    if (momentumData.length >= 2) {
+      let maxSwing = 0;
+      players.forEach((p) => {
+        const vals = momentumData.map((d) => d[p] ?? 0);
+        const swing = Math.max(...vals) - Math.min(...vals);
+        if (swing > maxSwing) { maxSwing = swing; bigMomentumPlayer = p; }
+      });
+    }
+
+    // Comeback detection: was the winner NOT leading at the halfway point?
+    // Use cumsum at the midpoint round to determine standings then.
+    const gameData = tournament.gameData || [];
+    let comebackFrom: string | null = null;  // name of who WAS leading at the midpoint
+    if (gameData.length >= 4) {
+      const midRow = gameData[Math.floor(gameData.length / 2) - 1];
+      const midScores = players.map((p) => ({ p, score: midRow[`cumsum_${p}`] ?? 0 }));
+      midScores.sort((a, b) => b.score - a.score);
+      const midLeader = midScores[0].p;
+      const winnerRankAtMid = midScores.findIndex((x) => x.p === winner.Player) + 1;
+      // Only flag as a comeback if winner was 2nd or lower at the midpoint
+      if (winnerRankAtMid >= 2 && midLeader !== winner.Player) {
+        comebackFrom = midLeader;
+      }
+    }
+
+    const parts: string[] = [];
+
+    // Opening: who won and how (with optional comeback suffix)
+    const comebackSuffix = comebackFrom ? `, coming from behind ${comebackFrom} at the halfway mark` : '';
+    if (isDominant) {
+      parts.push(`${winner.Player} dominated, finishing ${gap.toLocaleString()} pts clear of ${runnerUp.Player}${comebackSuffix}`);
+    } else if (isClose) {
+      parts.push(`${winner.Player} edged out ${runnerUp.Player} by just ${gap.toLocaleString()} pts in a tight finish${comebackSuffix}`);
+    } else {
+      parts.push(`${winner.Player} won with ${winner.TotalPoints.toLocaleString()} pts, ${gap.toLocaleString()} ahead of ${runnerUp.Player}${comebackSuffix}`);
+    }
+
+    // Consistency note
+    if (mostConsistent && mostConsistent !== winner.Player) {
+      parts.push(`${mostConsistent} was the most consistent scorer`);
+    } else if (mostConsistent) {
+      parts.push(`${winner.Player} also led in consistency`);
+    }
+
+    // Momentum note
+    if (bigMomentumPlayer && bigMomentumPlayer !== winner.Player) {
+      parts.push(`${bigMomentumPlayer} had the biggest momentum swings`);
+    }
+
+    // Tail note: who struggled
+    if (last.WinPercentage < 40) {
+      parts.push(`${last.Player} had a tough tournament at ${last.WinPercentage}% win rate`);
+    }
+
+    return parts.join('; ') + '.';
+  })();
+
   // Snapshot sorted: core players by rankAfter, then guests by ratingAfter descending
   const snapshotRows = snapshot
     ? Object.entries(snapshot).sort(([, a], [, b]) => {
@@ -220,17 +354,33 @@ export default function TournamentDetailPage() {
               </div>
             </motion.div>
 
+            {/* ── At a Glance summary ───────────────────────────────────────── */}
+            {glanceSummary && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="rounded-lg px-5 py-3.5 flex items-start gap-3"
+                style={{ background: "oklch(0.14 0.025 155)", border: "1px solid oklch(0.22 0.04 155)" }}
+              >
+                <span className="text-base mt-0.5" style={{ color: "oklch(0.78 0.15 85)" }}>♠</span>
+                <p className="text-sm leading-relaxed" style={{ color: "oklch(0.72 0.015 85)" }}>
+                  {glanceSummary}
+                </p>
+              </motion.div>
+            )}
+
             {/* ── 2. Final Standings ───────────────────────────────────────── */}
             <div className="felt-card rounded-lg overflow-hidden">
               <SectionHeader
                 title="Final Standings"
-                subtitle="TotalGames = all rounds in this tournament (same for all players). AvgPoints and WinPct include zero-score rounds."
+                subtitle="Win Rate and Avg Points include zero-score rounds."
               />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: "1px solid oklch(0.18 0.02 155)" }}>
-                      {["#", "Player", "Total Points", "Wins", "Win Rate", "Avg Points", "Rounds"].map((h) => (
+                      {["#", "Player", "Total Points", "Wins", "Win Rate", "Avg Points"].map((h) => (
                         <th key={h} className="px-4 py-3 text-left text-xs uppercase tracking-wider" style={{ color: "oklch(0.45 0.02 85)" }}>
                           {h}
                         </th>
@@ -267,7 +417,6 @@ export default function TournamentDetailPage() {
                         <td className="px-4 py-3 rank-number" style={{ color: "oklch(0.75 0.015 85)" }}>{s.Wins}</td>
                         <td className="px-4 py-3 rank-number" style={{ color: "oklch(0.75 0.015 85)" }}>{s.WinPercentage}%</td>
                         <td className="px-4 py-3 rank-number" style={{ color: "oklch(0.65 0.015 85)" }}>{s.AvgPoints}</td>
-                        <td className="px-4 py-3 rank-number" style={{ color: "oklch(0.50 0.02 85)" }}>{s.TotalGames}</td>
                       </motion.tr>
                     ))}
                   </tbody>
@@ -332,25 +481,248 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            {/* Total Points Bar */}
-            <div className="felt-card rounded-lg overflow-hidden">
-              <SectionHeader title="Total Points" subtitle="Final point totals for this tournament" />
-              <div className="p-4">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={barData} margin={{ top: 4, right: 8, bottom: 4, left: -10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.18 0.02 155)" />
-                    <XAxis dataKey="player" tick={{ fontSize: 11, fill: "oklch(0.60 0.02 85)" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="totalPoints" radius={[3, 3, 0, 0]}>
-                      {barData.map((entry) => (
-                        <Cell key={entry.player} fill={getPlayerColor(entry.player)} />
+
+            {/* ── NEW: Rating Swing + Biggest Mover cards ──────────────────── */}
+            {ratingSwings.length > 0 && (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Biggest Gainer */}
+                {biggestGainer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="felt-card rounded-lg p-4"
+                    style={{ borderTop: "3px solid #34d399" }}
+                  >
+                    <div className="text-xs uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>📈 Biggest Gainer</div>
+                    <div className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(biggestGainer.player) }}>
+                      {biggestGainer.player}
+                    </div>
+                    <div className="rank-number text-2xl font-bold" style={{ color: "#34d399" }}>+{biggestGainer.change}</div>
+                    <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>
+                      {biggestGainer.before} → {biggestGainer.after}
+                    </div>
+                  </motion.div>
+                )}
+                {/* Biggest Loser — only show when the drop is meaningful (>= 5 pts);
+                    otherwise show "Closest Finish" (smallest points gap between 1st and 2nd) */}
+                {(() => {
+                  const MEANINGFUL_DROP = 5;
+                  if (biggestLoser && biggestLoser.change <= -MEANINGFUL_DROP) {
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05 }}
+                        className="felt-card rounded-lg p-4"
+                        style={{ borderTop: "3px solid #f87171" }}
+                      >
+                        <div className="text-xs uppercase tracking-wider mb-2" style={{ color: "#f87171" }}>📉 Biggest Drop</div>
+                        <div className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(biggestLoser.player) }}>
+                          {biggestLoser.player}
+                        </div>
+                        <div className="rank-number text-2xl font-bold" style={{ color: "#f87171" }}>{biggestLoser.change}</div>
+                        <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>
+                          {biggestLoser.before} → {biggestLoser.after}
+                        </div>
+                      </motion.div>
+                    );
+                  }
+                  // Fallback: show the closest finish (tightest points gap in final standings)
+                  const ps = tournament.playerStats;
+                  if (ps.length >= 2) {
+                    const gap = ps[0].TotalPoints - ps[1].TotalPoints;
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05 }}
+                        className="felt-card rounded-lg p-4"
+                        style={{ borderTop: "3px solid #60a5fa" }}
+                      >
+                        <div className="text-xs uppercase tracking-wider mb-2" style={{ color: "#60a5fa" }}>⚔️ Closest Finish</div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(ps[0].Player) }}>{ps[0].Player}</span>
+                          <span className="text-sm" style={{ color: "oklch(0.40 0.02 85)" }}>vs</span>
+                          <span className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(ps[1].Player) }}>{ps[1].Player}</span>
+                        </div>
+                        <div className="rank-number text-2xl font-bold" style={{ color: "#60a5fa" }}>
+                          {gap.toLocaleString()} pts
+                        </div>
+                        <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>
+                          margin between 1st &amp; 2nd
+                        </div>
+                      </motion.div>
+                    );
+                  }
+                  return null;
+                })()}
+                {/* Best Pair */}
+                {bestPair && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.10 }}
+                    className="felt-card rounded-lg p-4"
+                    style={{ borderTop: "3px solid oklch(0.78 0.15 85)" }}
+                  >
+                    <div className="text-xs uppercase tracking-wider mb-2" style={{ color: "oklch(0.78 0.15 85)" }}>🤝 Best Pair</div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="font-bold text-sm" style={{ color: getPlayerColor(bestPair.Player_x) }}>{bestPair.Player_x}</span>
+                      <span className="text-xs" style={{ color: "oklch(0.40 0.02 85)" }}>+</span>
+                      <span className="font-bold text-sm" style={{ color: getPlayerColor(bestPair.Player_y) }}>{bestPair.Player_y}</span>
+                    </div>
+                    <div className="rank-number text-2xl font-bold" style={{ color: "oklch(0.78 0.15 85)" }}>{bestPair.WinPercentage}%</div>
+                    <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>
+                      {bestPair.Wins}W / {bestPair.Losses}L in {bestPair.TotalGames} games
+                    </div>
+                  </motion.div>
+                )}
+                {/* Dream Team */}
+                {dreamTeam && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="felt-card rounded-lg p-4"
+                    style={{ borderTop: "3px solid #a78bfa" }}
+                  >
+                    <div className="text-xs uppercase tracking-wider mb-2" style={{ color: "#a78bfa" }}>🏆 Dream Trio</div>
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {[dreamTeam.Player_x, dreamTeam.Player_y, dreamTeam.Player_z].map((p, i) => (
+                        <span key={p} className="font-bold text-xs" style={{ color: getPlayerColor(p) }}>
+                          {i > 0 && <span style={{ color: "oklch(0.35 0.02 85)" }}> + </span>}{p}
+                        </span>
                       ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                    </div>
+                    <div className="rank-number text-2xl font-bold" style={{ color: "#a78bfa" }}>{dreamTeam.WinPercentage}%</div>
+                    <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>
+                      {dreamTeam.Wins}W / {dreamTeam.Losses}L in {dreamTeam.TotalGames} games
+                    </div>
+                  </motion.div>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* ── NEW: Momentum Chart (rolling 5-game win rate) ────────────────── */}
+            {momentumData.length > 0 && (
+              <div className="felt-card rounded-lg overflow-hidden">
+                <SectionHeader
+                  title={`Momentum (Rolling ${momentumWindow}-Game Win Rate)`}
+                  subtitle={`Win rate over the last ${momentumWindow} rounds — shows who was in form vs. fading mid-tournament`}
+                />
+                <div className="p-4">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={momentumData} margin={{ top: 4, right: 8, bottom: 16, left: -10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.18 0.02 155)" />
+                      <XAxis
+                        dataKey="game"
+                        tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }}
+                        label={{ value: "Round #", position: "insideBottom", offset: -10, fontSize: 10, fill: "oklch(0.45 0.02 85)" }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }}
+                        tickFormatter={(v) => `${v}%`}
+                        domain={[0, 100]}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value: number) => [`${value}%`]}
+                      />
+                      <ReferenceLine y={50} stroke="oklch(0.35 0.03 155)" strokeDasharray="4 4" label={{ value: "50%", fill: "oklch(0.35 0.03 155)", fontSize: 9 }} />
+                      {players.map((p) => (
+                        <Line key={p} type="monotone" dataKey={p} stroke={getPlayerColor(p)} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <ChartLegend players={players} />
+                </div>
+              </div>
+            )}
+
+
+            {/* ── NEW: Consistency Cards ───────────────────────────────────────── */}
+            {Object.keys(consistencyStats).length > 0 && (() => {
+              // Sort ascending by CV — most consistent (lowest CV) first
+              const sorted = players
+                .filter((p) => consistencyStats[p])
+                .sort((a, b) => (consistencyStats[a]?.cv ?? 999) - (consistencyStats[b]?.cv ?? 999));
+              const maxCv = Math.max(...sorted.map((p) => consistencyStats[p]?.cv ?? 0));
+              const minCv = Math.min(...sorted.map((p) => consistencyStats[p]?.cv ?? 0));
+
+              // Label helper: describe how steady a player is
+              const steadinessLabel = (cv: number) => {
+                if (cv < 0.8) return { label: "Rock Solid", color: "#34d399" };
+                if (cv < 1.0) return { label: "Steady", color: "#86efac" };
+                if (cv < 1.2) return { label: "Variable", color: "oklch(0.78 0.15 85)" };
+                return { label: "Streaky", color: "#f87171" };
+              };
+
+              return (
+                <div className="felt-card rounded-lg overflow-hidden">
+                  <SectionHeader
+                    title="Consistency Index"
+                    subtitle="Coefficient of Variation (CV) = std dev ÷ mean across all rounds. Lower CV = more consistent — a player who scores steadily beats one who alternates big wins and blanks."
+                  />
+                  <div className="p-5 space-y-3">
+                    {sorted.map((p, i) => {
+                      const cs = consistencyStats[p];
+                      const { label, color } = steadinessLabel(cs.cv);
+                      // Bar fills inversely: most consistent gets widest bar
+                      const barPct = maxCv > minCv
+                        ? Math.round(((maxCv - cs.cv) / (maxCv - minCv)) * 80 + 20)
+                        : 60;
+                      return (
+                        <motion.div
+                          key={p}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          className="flex items-center gap-3"
+                        >
+                          {/* Rank badge */}
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            style={{ background: i === 0 ? "#fbbf24" : "oklch(0.20 0.02 155)", color: i === 0 ? "#000" : "oklch(0.55 0.02 85)" }}
+                          >
+                            {i + 1}
+                          </div>
+                          {/* Player name */}
+                          <div className="w-20 text-sm font-semibold flex-shrink-0" style={{ color: getPlayerColor(p) }}>{p}</div>
+                          {/* Bar track */}
+                          <div className="flex-1 relative h-6 rounded" style={{ background: "oklch(0.14 0.018 155)" }}>
+                            <motion.div
+                              className="absolute inset-y-0 left-0 rounded"
+                              style={{ background: `${color}33`, width: `${barPct}%` }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${barPct}%` }}
+                              transition={{ delay: i * 0.06 + 0.1, duration: 0.5 }}
+                            />
+                            <div className="absolute inset-0 flex items-center px-2.5 gap-2">
+                              <span className="text-xs font-bold" style={{ color }}>{label}</span>
+                              <span className="text-xs" style={{ color: "oklch(0.45 0.02 85)" }}>
+                                CV {(cs.cv).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Stats */}
+                          <div className="text-right flex-shrink-0 w-28">
+                            <div className="text-xs" style={{ color: "oklch(0.55 0.02 85)" }}>
+                              avg <span style={{ color: "oklch(0.75 0.02 85)" }}>{Math.round(cs.mean)}</span> pts/round
+                            </div>
+                            <div className="text-xs" style={{ color: "oklch(0.40 0.02 85)" }}>
+                              on wins: {Math.round(cs.meanWins ?? cs.mean)}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    <div className="text-xs pt-1" style={{ color: "oklch(0.38 0.02 85)" }}>
+                      ← lower CV = more consistent &nbsp;|&nbsp; higher CV = more streaky
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── 5. Pair Performance (same-team stats) ───────────────────── */}
             {tournament.pairwiseStats.length > 0 && (
@@ -520,11 +892,7 @@ export default function TournamentDetailPage() {
                           { label: "Games", icon: <Gamepad2 size={10} /> },
                           { label: "Win %", icon: null },
                           { label: "Bid+Win %", icon: <Target size={10} /> },
-                          { label: "Win Streak", icon: <Flame size={10} /> },
-                          { label: "Loss Streak", icon: null },
-                          { label: "Fivples", icon: <Zap size={10} /> },
-                          { label: "Tenples", icon: <Award size={10} /> },
-                          { label: "FiveMottes", icon: null },
+                          { label: "Milestones", icon: null },
                         ].map(({ label, icon }) => (
                           <th key={label} className="px-3 py-3 text-left text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "oklch(0.45 0.02 85)" }}>
                             <span className="flex items-center gap-1">{icon}{label}</span>
@@ -590,47 +958,75 @@ export default function TournamentDetailPage() {
                           <td className="px-3 py-3 rank-number" style={{ color: "oklch(0.70 0.015 85)" }}>{snap.winPct}%</td>
                           {/* Bid+Win % */}
                           <td className="px-3 py-3 rank-number" style={{ color: "oklch(0.60 0.02 85)" }}>{snap.bidAndWonPct}%</td>
-                          {/* Win streak */}
+                          {/* Milestones: collapsed badges */}
                           <td className="px-3 py-3">
-                            <span className="rank-number font-semibold" style={{ color: snap.bestWinStreak >= 5 ? "#fbbf24" : "oklch(0.65 0.015 85)" }}>
-                              {snap.bestWinStreak}
-                            </span>
-                          </td>
-                          {/* Loss streak */}
-                          <td className="px-3 py-3">
-                            <span className="rank-number" style={{ color: snap.worstLossStreak >= 5 ? "#f87171" : "oklch(0.50 0.02 85)" }}>
-                              {snap.worstLossStreak}
-                            </span>
-                          </td>
-                          {/* Fivples */}
-                          <td className="px-3 py-3">
-                            <span className="rank-number" style={{ color: snap.numFivles > 0 ? "#fbbf24" : "oklch(0.35 0.02 85)" }}>
-                              {snap.numFivles}
-                            </span>
-                          </td>
-                          {/* Tenples */}
-                          <td className="px-3 py-3">
-                            <span className="rank-number" style={{ color: snap.numTenples > 0 ? "#a78bfa" : "oklch(0.35 0.02 85)" }}>
-                              {snap.numTenples}
-                            </span>
-                          </td>
-                          {/* FiveMottes */}
-                          <td className="px-3 py-3">
-                            <span className="rank-number" style={{ color: snap.fiveMottes > 0 ? "#f87171" : "oklch(0.35 0.02 85)" }}>
-                              {snap.fiveMottes}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Win streak badge — always shown */}
+                              <span
+                                className="rank-number text-xs px-1.5 py-0.5 rounded"
+                                title={`Best win streak: ${snap.bestWinStreak}`}
+                                style={{
+                                  background: snap.bestWinStreak >= 5 ? "oklch(0.22 0.06 85)" : "oklch(0.14 0.02 85)",
+                                  color: snap.bestWinStreak >= 5 ? "#fbbf24" : "oklch(0.40 0.02 85)",
+                                }}
+                              >
+                                🔥×{snap.bestWinStreak}
+                              </span>
+                              {/* Loss streak badge — always shown */}
+                              <span
+                                className="rank-number text-xs px-1.5 py-0.5 rounded"
+                                title={`Worst loss streak: ${snap.worstLossStreak}`}
+                                style={{
+                                  background: snap.worstLossStreak >= 5 ? "oklch(0.20 0.05 15)" : "oklch(0.14 0.02 85)",
+                                  color: snap.worstLossStreak >= 5 ? "#f87171" : "oklch(0.40 0.02 85)",
+                                }}
+                              >
+                                💀×{snap.worstLossStreak}
+                              </span>
+                              {/* Fivples — only if > 0 */}
+                              {snap.numFivles > 0 && (
+                                <span
+                                  className="rank-number text-xs px-1.5 py-0.5 rounded"
+                                  title={`Fivples (5 consecutive wins in a tournament): ${snap.numFivles}`}
+                                  style={{ background: "oklch(0.22 0.06 85)", color: "#fbbf24" }}
+                                >
+                                  ⚡×{snap.numFivles}
+                                </span>
+                              )}
+                              {/* Tenples — only if > 0 */}
+                              {snap.numTenples > 0 && (
+                                <span
+                                  className="rank-number text-xs px-1.5 py-0.5 rounded"
+                                  title={`Tenples (10 consecutive wins): ${snap.numTenples}`}
+                                  style={{ background: "oklch(0.20 0.06 290)", color: "#a78bfa" }}
+                                >
+                                  👑×{snap.numTenples}
+                                </span>
+                              )}
+                              {/* FiveMottes — only if > 0 */}
+                              {snap.fiveMottes > 0 && (
+                                <span
+                                  className="rank-number text-xs px-1.5 py-0.5 rounded"
+                                  title={`FiveMottes (5 consecutive losses): ${snap.fiveMottes}`}
+                                  style={{ background: "oklch(0.20 0.05 15)", color: "#f87171" }}
+                                >
+                                  🥚×{snap.fiveMottes}
+                                </span>
+                              )}
+                            </div>
                           </td>
                         </motion.tr>
-                        );
+                      );
                       })}
                     </tbody>
                   </table>
                 </div>
                 {/* Legend for milestones */}
                 <div className="px-5 py-3 flex flex-wrap gap-4 text-xs" style={{ borderTop: "1px solid oklch(0.18 0.02 155)", color: "oklch(0.45 0.02 85)" }}>
-                  <span><span style={{ color: "#fbbf24" }}>Fivple</span> = 5 consecutive wins in a tournament</span>
-                  <span><span style={{ color: "#a78bfa" }}>Tenple</span> = 10 consecutive wins</span>
-                  <span><span style={{ color: "#f87171" }}>FiveMotte</span> = 5 consecutive losses</span>
+                  <span>🔥 = best win streak &nbsp;💀 = worst loss streak</span>
+                  <span><span style={{ color: "#fbbf24" }}>⚡ Fivple</span> = 5 consec. wins in a tournament</span>
+                  <span><span style={{ color: "#a78bfa" }}>👑 Tenple</span> = 10 consec. wins</span>
+                  <span><span style={{ color: "#f87171" }}>🥚 FiveMotte</span> = 5 consec. losses</span>
                 </div>
               </div>
             )}
