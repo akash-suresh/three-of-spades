@@ -7,6 +7,8 @@ class PlayerProfile:
         self.name = name
         self.rating = rating
         self.bidAndWon = 0
+        self.bidAttempts = 0   # rounds where this player was the named bidder
+        self.bidWins = 0       # rounds where they bid AND scored > 0
         self.careerGames = 0
         self.careerWins = 0
         # streak stats
@@ -27,15 +29,21 @@ class PlayerProfile:
         self.lossStreak = 0
 
 
-    def registerGame(self, tournament: Tournament, adjusted_points, is_win, bid_and_won = False):
+    def registerGame(self, tournament: Tournament, adjusted_points, is_win,
+                      bid_and_won=False, is_named_bidder=False, named_bid_won=False):
         if tournament.display() != self.currentTournament:
             self.newTournamentStart(tournament)
         
         if is_win:
             self.registerWin(adjusted_points, bid_and_won)
-        
         else:
             self.registerLoss(adjusted_points)
+        
+        # Track named-bidder stats (only for tournaments with a Bidder column)
+        if is_named_bidder:
+            self.bidAttempts += 1
+            if named_bid_won:
+                self.bidWins += 1
         
         self.recordStreaks(is_win)
 
@@ -88,6 +96,12 @@ class PlayerProfile:
 
     def bidAndWonPercentage(self):
         return int(100.0*(self.bidAndWon/self.careerGames))
+
+    def bidWinRate(self):
+        """Win rate when the player is the named bidder (None if no bid data)."""
+        if self.bidAttempts == 0:
+            return None
+        return round(100.0 * self.bidWins / self.bidAttempts, 1)
     
     def getDictForLeaderboard(self, new_rank, rank_change, new_rating, rating_change):
         return {
