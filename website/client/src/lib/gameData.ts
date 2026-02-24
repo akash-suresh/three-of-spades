@@ -44,6 +44,15 @@ export interface BidAndWonStat {
   BidAndWon: number;
 }
 
+export interface ConsistencyStat {
+  mean: number;    // avg score across ALL rounds (including zero-score losses)
+  std: number;     // std dev across ALL rounds
+  cv: number;      // coefficient of variation (std/mean) — lower = more consistent
+  meanWins: number; // avg score on winning rounds only
+  stdWins: number;  // std dev on winning rounds only
+  scores: number[];
+}
+
 export interface GameDataPoint {
   game: number;
   [key: string]: number; // cumsum_<player>, winratio_<player>
@@ -60,6 +69,9 @@ export interface TournamentPlayerSnapshot {
   careerGames: number;
   winPct: number;
   bidAndWonPct: number;
+  bidAttempts: number;    // 0 when tournament has no Bidder column
+  bidWins: number;        // 0 when tournament has no Bidder column
+  bidWinRate: number | null; // null when bidAttempts == 0
   bestWinStreak: number;
   worstLossStreak: number;
   numFivles: number;
@@ -73,6 +85,9 @@ export interface CareerStats {
   winPct: number;
   bidAndWon: number;
   bidAndWonPct: number;
+  bidAttempts: number;    // total rounds as named bidder across all tournaments with Bidder column
+  bidWins: number;        // rounds where they bid and scored > 0
+  bidWinRate: number | null; // null when bidAttempts == 0
   bestWinStreak: number;
   worstLossStreak: number;
   numFivles: number;
@@ -97,6 +112,9 @@ export interface Tournament {
   pairwiseStats: PairwiseStat[];
   trioStats: TrioStat[];
   bidAndWon: BidAndWonStat[];
+  bidStatsByPlayer: Record<string, { bidAttempts: number; bidWins: number; bidWinRate: number | null }>;
+  hasBidderData: boolean;   // true when the source CSV had a Bidder column
+  consistencyStats: Record<string, ConsistencyStat>;
 }
 
 export interface TournamentSummary {
@@ -201,7 +219,7 @@ export const TOURNAMENT_TYPE_COLORS: Record<TournamentType, string> = {
 };
 
 // Fetch game data — try local first (dev), then CDN (production)
-const CDN_DATA_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663325356591/aLhTYkIGmKpdczZN.json";
+const CDN_DATA_URL = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663325356591/jmqHOOcCJdWzJmBB.json";
 let cachedData: GameData | null = null;
 
 export async function fetchGameData(): Promise<GameData> {
