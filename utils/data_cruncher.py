@@ -43,6 +43,9 @@ def get_championship_details(tourney_number, tournament_type, save_csv = False):
 
 
 def get_bid_and_won_stats(raw_df):
+  """Heuristic bid-and-won count using the modulo trick (no Bidder column required).
+  Returns a DataFrame with columns: Player, Bid and Won.
+  """
   players = get_players(raw_df)
   
   bid_and_win = {}
@@ -59,6 +62,49 @@ def get_bid_and_won_stats(raw_df):
   res = pd.DataFrame(bid_and_win.items(), columns=['Player', 'Bid and Won'])
   res = res.sort_values(by=['Bid and Won'], ascending = False)
   return res
+
+
+def get_named_bid_stats(raw_df):
+  """Compute bid attempts, wins, and win rate per player using the Bidder column.
+  Only valid for tournaments that have a Bidder column; returns None otherwise.
+  Returns a DataFrame with columns: Player, BidAttempts, BidWins, BidWinRate.
+  """
+  if 'Bidder' not in raw_df.columns:
+    return None
+
+  players = get_players(raw_df)
+  stats = {p: {'BidAttempts': 0, 'BidWins': 0} for p in players}
+
+  for _, row in raw_df.iterrows():
+    bidder = row['Bidder']
+    if pd.isna(bidder) or bidder not in stats:
+      continue
+    stats[bidder]['BidAttempts'] += 1
+    if row[bidder] > 0:  # bidder scored → bid won
+      stats[bidder]['BidWins'] += 1
+
+  rows = []
+  for player, s in stats.items():
+    attempts = s['BidAttempts']
+    wins = s['BidWins']
+    rate = round(100.0 * wins / attempts, 1) if attempts > 0 else None
+    rows.append({'Player': player, 'BidAttempts': attempts, 'BidWins': wins, 'BidWinRate': rate})
+
+  res = pd.DataFrame(rows).sort_values(by='BidAttempts', ascending=False).reset_index(drop=True)
+  return res
+
+def get_timeseries_with_won(raw_df):
+  """Return the game-by-game timeseries (cumulative sums) augmented with a
+  won_<player> column (1 if the player scored > 0 that round, 0 otherwise).
+  This is used by the momentum chart in the website.
+  """
+  players = get_players(raw_df)
+  ts = get_game_data_as_timeseries(raw_df).copy()
+  for player in players:
+    if player in raw_df.columns:
+      ts[f'{player}_Won'] = (raw_df[player].values > 0).astype(int)
+  return ts
+
 
 def get_pairwise_stats(raw_df, min_num_games=10):
   players = get_players(raw_df)

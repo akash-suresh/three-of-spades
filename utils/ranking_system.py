@@ -8,12 +8,6 @@ from utils.constants import TournamentTypes
 BASE_RATING = 1000
 DENOMINATOR = 200
 
-TOURNAMENT_WEIGHTAGE = {
-    TournamentTypes.CHAMPIONSHIP: 1,
-    TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
-    TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
-    TournamentTypes.FRIENDLY: 1,
-}
 
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -101,7 +95,7 @@ class UniversalRatingSystem:
         return self.playerMap[player_name]
     
     # Records the game
-    def recordGame(self, row, players, tournament):
+    def recordGame(self, row, players, tournament, bidder_name=None):
         # Define teams and base points
         winning_team = []
         losing_team = []
@@ -114,7 +108,8 @@ class UniversalRatingSystem:
             else:
                 losing_team.append(self.getPlayerProfile(player))
 
-        calculateRatingChange(winning_team, losing_team, winning_team_points, tournament)
+        calculateRatingChange(winning_team, losing_team, winning_team_points, tournament,
+                              bidder_name=bidder_name)
 
     def addTournamentData(self, tournament: Tournament):
         game_records = tournament.rawData
@@ -132,8 +127,10 @@ class UniversalRatingSystem:
         self.preTournamentRatings[tourney_key] = before_player_ratings
 
         # feeding in scores one game at a time
+        has_bidder_col = 'Bidder' in game_records.columns
         for _, row in game_records.iterrows():
-            self.recordGame(row, players, tournament)
+            bidder = row['Bidder'] if has_bidder_col else None
+            self.recordGame(row, players, tournament, bidder_name=bidder)
 
         after_player_ratings = self.getRankingsSnapshot()
         self.postTournamentRatings[tourney_key] = after_player_ratings
@@ -201,15 +198,16 @@ def getAdjustmentMultiplier(rating_diff, tournament):
     # case 3 - winning team is weaker --> adjustment_factor > 1 [increase reward by x%]
     adjustment_factor = (1-winsorized_diff)
     
-    # get weightage for tournament type (see defn. of TOURNAMENT_WEIGHTAGE for more details)
-    weightage = TOURNAMENT_WEIGHTAGE[tournament.typ()]
+    # get weightage for tournament type — defined on TournamentTypes.weight()
+    weightage = tournament.typ().weight()
 
     final_reward_multiplier = (weightage/DENOMINATOR) * adjustment_factor
 
     return final_reward_multiplier
 
 
-def calculateRatingChange(winning_team, losing_team, winning_team_points, tournament: Tournament):
+def calculateRatingChange(winning_team, losing_team, winning_team_points, tournament: Tournament,
+                          bidder_name=None):
     assert len(winning_team) == len(winning_team_points)
 
     bid = min(winning_team_points)
@@ -228,12 +226,19 @@ def calculateRatingChange(winning_team, losing_team, winning_team_points, tourna
     # Update ratings for players in winning team
     for player, player_points in zip(winning_team, winning_team_points):
         adjusted_points = player_points * adj_mult
+        is_named_bidder = (bidder_name is not None and player.name == bidder_name)
         # registering game in player object
-        player.registerGame(tournament, adjusted_points, is_win = True, bid_and_won = (player_points>bid))
+        player.registerGame(tournament, adjusted_points, is_win=True,
+                            bid_and_won=(player_points > bid),
+                            is_named_bidder=is_named_bidder,
+                            named_bid_won=is_named_bidder)  # bidder won iff they're on winning team
         
     # Update ratings for players in losing team
     for player in losing_team:
         adjusted_points = bid * adj_mult
+        is_named_bidder = (bidder_name is not None and player.name == bidder_name)
         # registering game in player object
-        player.registerGame(tournament, adjusted_points, is_win = False)
+        player.registerGame(tournament, adjusted_points, is_win=False,
+                            is_named_bidder=is_named_bidder,
+                            named_bid_won=False)  # bidder lost iff they're on losing team
 
