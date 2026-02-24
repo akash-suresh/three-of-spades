@@ -56,10 +56,6 @@ NON_PLAYER_COLS = NON_PLAYER_COLUMNS | {"Game ID"}
 CORE_PLAYER_GAME_THRESHOLD = 200  # Players with > this many total games are "core"
 CORE_PLAYERS = []  # Populated dynamically in main() after counting games
 
-# Convert the canonical (TournamentTypes, number) list from utils.constants into
-# (type_string, number) tuples that the rest of this file uses.
-TOURNAMENT_LIST_CHRONOLOGICAL = [(t.value, n) for t, n in _TOURNEY_LIST_ENUM]
-
 # String-to-enum lookup — needed when working with raw CSV filenames / type strings.
 _TOURNEY_TYPE_ENUM = {t.value: t for t in TournamentTypes}
 
@@ -97,7 +93,8 @@ def compute_core_players():
     Returns players with > CORE_PLAYER_GAME_THRESHOLD games, sorted by game count desc.
     """
     game_counts = {}
-    for tourney_type, number in TOURNAMENT_LIST_CHRONOLOGICAL:
+    for t, number in _TOURNEY_LIST_ENUM:
+        tourney_type = t.value
         raw_df, players = load_tournament_raw(tourney_type, number)
         if raw_df is None:
             continue
@@ -125,7 +122,8 @@ def process_all_tournaments():
     tournaments = []
     type_counters = {}
 
-    for tourney_type, number in TOURNAMENT_LIST_CHRONOLOGICAL:
+    for t, number in _TOURNEY_LIST_ENUM:
+        tourney_type = t.value
         raw_df, players = load_tournament_raw(tourney_type, number)
         if raw_df is None:
             print(f"Skipping {tourney_type}_{number} — file not found")
