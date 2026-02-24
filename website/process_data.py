@@ -25,14 +25,15 @@ import copy
 import json
 import os
 import statistics
+import sys
 
 import numpy as np
 import pandas as pd
 
 # ── Imports from utils/ ───────────────────────────────────────────────────────
 from utils.Player import PlayerProfile
-from utils.ranking_system import getAdjustmentMultiplier, BASE_RATING, DENOMINATOR
-from utils.constants import TournamentTypes
+from utils.ranking_system import getAdjustmentMultiplier, BASE_RATING, DENOMINATOR, TOURNAMENT_WEIGHTAGE
+from utils.constants import TournamentTypes, TOURNAMENT_LIST_CHRONOLOGICAL as _TOURNEY_LIST_ENUM, NON_PLAYER_COLUMNS
 from utils.data_cruncher import (
     get_player_stats,
     get_pairwise_stats,
@@ -42,52 +43,26 @@ from utils.data_cruncher import (
     get_timeseries_with_won,
 )
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Constants ──────────────────────────────────────────────────────────────────
 
-DATA_DIR = "/home/ubuntu/tourney_data"
+# Resolve paths relative to this file so the script works from any cwd.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(_REPO_ROOT, "tourney_data", "raw_scores")
 
-NON_PLAYER_COLS = {"Bidder", "Discard", "Margin", "Game ID"}
+# NON_PLAYER_COLUMNS from utils.constants covers Bidder/Discard/Margin.
+# We also exclude "Game ID" which we inject ourselves.
+NON_PLAYER_COLS = NON_PLAYER_COLUMNS | {"Game ID"}
 
 CORE_PLAYER_GAME_THRESHOLD = 200  # Players with > this many total games are "core"
 CORE_PLAYERS = []  # Populated dynamically in main() after counting games
 
-TOURNAMENT_LIST_CHRONOLOGICAL = [
-    ("championship", 1),
-    ("championship", 2),
-    ("championship", 3),
-    ("championship", 4),
-    ("championship", 5),
-    ("mini_championship", 1),
-    ("championship", 6),
-    ("championship", 7),
-    ("international_friendly", 1),
-    ("mini_championship", 2),
-    ("championship", 8),
-    ("mini_championship", 3),
-    ("international_friendly", 2),
-    ("tiny_championship", 1),
-    ("mini_championship", 4),
-    ("tiny_championship", 2),
-    ("tiny_championship", 3),
-    ("tiny_championship", 4),
-    ("tiny_championship", 5),
-    ("mini_championship", 5),
-    ("mini_championship", 6),
-    ("international_friendly", 3),
-    ("tiny_championship", 6),
-    ("tiny_championship", 7),
-    ("tiny_championship", 8),
-    ("mini_championship", 7),
-    ("tiny_championship", 9),
-    ("international_friendly", 4),
-]
+# Convert the canonical (TournamentTypes, number) list from utils.constants into
+# (type_string, number) tuples that the rest of this file uses.
+TOURNAMENT_LIST_CHRONOLOGICAL = [(t.value, n) for t, n in _TOURNEY_LIST_ENUM]
 
-TOURNAMENT_WEIGHTS = {
-    "championship": 1.0,
-    "mini_championship": 0.75,
-    "tiny_championship": 0.75,
-    "international_friendly": 1.0,
-}
+# TOURNAMENT_WEIGHTAGE from utils.ranking_system uses TournamentTypes enum keys.
+# Build a string-keyed version for the parts of this file that work with type strings.
+TOURNAMENT_WEIGHTS = {t.value: w for t, w in TOURNAMENT_WEIGHTAGE.items()}
 
 TOURNAMENT_DISPLAY_NAMES = {
     "championship": "Championship",
@@ -304,9 +279,12 @@ def compute_overall_rankings(tournaments_raw):
     Full Elo-style per-game rating system using PlayerProfile from utils.Player.
     Computes per-tournament pre/post rating snapshots and per-tournament milestone deltas.
 
-    Note: We use PlayerProfile directly (not UniversalRatingSystem) because the website
-    needs per-tournament snapshot diffs and milestone deltas that are website-specific
-    output concerns. getAdjustmentMultiplier from ranking_system is reused directly.
+    Note: We use PlayerProfile + getAdjustmentMultiplier directly (not UniversalRatingSystem)
+    because the website needs per-tournament pre/post rating snapshots and milestone deltas
+    (fivplesThisTourney etc.) that are website-specific output concerns.
+    UniversalRatingSystem does not expose these hooks, so we replicate its per-game loop
+    here while reusing the shared math (getAdjustmentMultiplier, BASE_RATING, DENOMINATOR)
+    from utils.ranking_system.
 
     Returns:
       rankings          — final sorted list [{player, rating, rank}]
@@ -584,7 +562,12 @@ def main():
         "totalTournaments": len(tournaments),
     }
 
-    output_path = "/home/ubuntu/three-of-spades-tracker/client/public/game_data.json"
+    # Default output path: website/client/public/game_data.json relative to the repo root.
+    # Override by passing a path as the first CLI argument:
+    #   python3 website/process_data.py /path/to/output/game_data.json
+    output_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        _REPO_ROOT, "website", "client", "public", "game_data.json"
+    )
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(output, f, indent=2)
