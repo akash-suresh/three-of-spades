@@ -83,6 +83,7 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.MINI_CHAMPIONSHIP, 7),
     (TournamentTypes.TINY_CHAMPIONSHIP, 9),
     (TournamentTypes.FRIENDLY, 4), # Abhi, Nihal visit home    
+    (TournamentTypes.TINY_CHAMPIONSHIP, 13), # Winter 2025
     (TournamentTypes.TINY_CHAMPIONSHIP, 14), # NYC 2026
     (TournamentTypes.TINY_CHAMPIONSHIP, 15), # Pearl Harbor
 ]
