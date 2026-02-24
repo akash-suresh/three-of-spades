@@ -32,7 +32,7 @@ import pandas as pd
 
 # ── Imports from utils/ ───────────────────────────────────────────────────────
 from utils.Player import PlayerProfile
-from utils.ranking_system import getAdjustmentMultiplier, BASE_RATING, DENOMINATOR, TOURNAMENT_WEIGHTAGE
+from utils.ranking_system import getAdjustmentMultiplier, BASE_RATING, DENOMINATOR
 from utils.constants import TournamentTypes, TOURNAMENT_LIST_CHRONOLOGICAL as _TOURNEY_LIST_ENUM, NON_PLAYER_COLUMNS
 from utils.data_cruncher import (
     get_player_stats,
@@ -60,16 +60,8 @@ CORE_PLAYERS = []  # Populated dynamically in main() after counting games
 # (type_string, number) tuples that the rest of this file uses.
 TOURNAMENT_LIST_CHRONOLOGICAL = [(t.value, n) for t, n in _TOURNEY_LIST_ENUM]
 
-# TOURNAMENT_WEIGHTAGE from utils.ranking_system uses TournamentTypes enum keys.
-# Build a string-keyed version for the parts of this file that work with type strings.
-TOURNAMENT_WEIGHTS = {t.value: w for t, w in TOURNAMENT_WEIGHTAGE.items()}
-
-TOURNAMENT_DISPLAY_NAMES = {
-    "championship": "Championship",
-    "mini_championship": "Mini Championship",
-    "tiny_championship": "Tiny Championship",
-    "international_friendly": "International Friendly",
-}
+# String-to-enum lookup — needed when working with raw CSV filenames / type strings.
+_TOURNEY_TYPE_ENUM = {t.value: t for t in TournamentTypes}
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
@@ -142,7 +134,7 @@ def process_all_tournaments():
         type_counters[tourney_type] = type_counters.get(tourney_type, 0) + 1
         display_num = type_counters[tourney_type]
         tourney_id = f"{tourney_type}_{number}"
-        display_name = f"{TOURNAMENT_DISPLAY_NAMES[tourney_type]} #{display_num}"
+        display_name = f"{_TOURNEY_TYPE_ENUM[tourney_type].display()} #{display_num}"
 
         # ── Player stats ──────────────────────────────────────────────────────
         player_stats_df = get_player_stats(raw_df)
@@ -225,7 +217,7 @@ def process_all_tournaments():
             "number": number,
             "displayNumber": display_num,
             "displayName": display_name,
-            "weight": TOURNAMENT_WEIGHTS[tourney_type],
+            "weight": _TOURNEY_TYPE_ENUM[tourney_type].weight(),
             "players": players,
             "corePlayers": core_in_tourney,
             "guestPlayers": guests_in_tourney,
@@ -249,14 +241,6 @@ def process_all_tournaments():
 
 
 # ── Elo rating system ─────────────────────────────────────────────────────────
-
-# Mapping from string tournament type to TournamentTypes enum
-_TOURNEY_TYPE_ENUM = {
-    "championship": TournamentTypes.CHAMPIONSHIP,
-    "mini_championship": TournamentTypes.MINI_CHAMPIONSHIP,
-    "tiny_championship": TournamentTypes.TINY_CHAMPIONSHIP,
-    "international_friendly": TournamentTypes.FRIENDLY,
-}
 
 
 class _TourneyKey:
@@ -305,7 +289,7 @@ def compute_overall_rankings(tournaments_raw):
     for tourney in tournaments_raw:
         tourney_id = tourney["id"]
         tourney_key = tourney["displayName"]
-        weight = TOURNAMENT_WEIGHTS[tourney["type"]]
+        weight = _TOURNEY_TYPE_ENUM[tourney["type"]].weight()
         players = tourney["players"]
         raw_df = tourney["_raw_df"]
 

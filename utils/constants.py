@@ -37,10 +37,32 @@ class TournamentTypes(Enum):
         abrv = ''
         for s in splits:
             abrv += s[0]
-        
         return abrv.upper()
 
-    
+    def weight(self) -> float:
+        """Elo rating weight for this tournament type.
+        Championship and International Friendly carry full weight (1.0);
+        Mini and Tiny Championships carry reduced weight (0.75).
+        """
+        _weights = {
+            TournamentTypes.CHAMPIONSHIP: 1.0,
+            TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
+            TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
+            TournamentTypes.FRIENDLY: 1.0,
+        }
+        return _weights[self]
+
+    def display_short(self) -> str:
+        """Compact label suitable for badges and narrow UI columns."""
+        _short = {
+            TournamentTypes.CHAMPIONSHIP: 'Championship',
+            TournamentTypes.MINI_CHAMPIONSHIP: 'Mini',
+            TournamentTypes.TINY_CHAMPIONSHIP: 'Tiny',
+            TournamentTypes.FRIENDLY: 'Friendly',
+        }
+        return _short[self]
+
+
 # paths
 
 def get_datascore_path(tourney_number, tournament_type=TournamentTypes.CHAMPIONSHIP):

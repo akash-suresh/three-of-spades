@@ -8,12 +8,6 @@ from utils.constants import TournamentTypes
 BASE_RATING = 1000
 DENOMINATOR = 200
 
-TOURNAMENT_WEIGHTAGE = {
-    TournamentTypes.CHAMPIONSHIP: 1,
-    TournamentTypes.MINI_CHAMPIONSHIP: 0.75,
-    TournamentTypes.TINY_CHAMPIONSHIP: 0.75,
-    TournamentTypes.FRIENDLY: 1,
-}
 
 '''
 Certainly! Developing a scoring system for a card game involves considering various factors such as player performance, opponents' skill levels, game outcomes, and possibly other relevant metrics. Here's a generalized algorithm you might consider for creating such a system:
@@ -204,8 +198,8 @@ def getAdjustmentMultiplier(rating_diff, tournament):
     # case 3 - winning team is weaker --> adjustment_factor > 1 [increase reward by x%]
     adjustment_factor = (1-winsorized_diff)
     
-    # get weightage for tournament type (see defn. of TOURNAMENT_WEIGHTAGE for more details)
-    weightage = TOURNAMENT_WEIGHTAGE[tournament.typ()]
+    # get weightage for tournament type — defined on TournamentTypes.weight()
+    weightage = tournament.typ().weight()
 
     final_reward_multiplier = (weightage/DENOMINATOR) * adjustment_factor
 
