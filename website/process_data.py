@@ -175,17 +175,12 @@ def process_all_tournaments():
                     "bidWinRate": row["BidWinRate"],
                 }
 
-        # ── Consistency stats (CV over all rounds) ────────────────────────────
-        # Reconstruct per-round scores from cumsum
-        round_scores = {}
-        for p in players:
-            scores = []
-            prev = 0
-            for pt in game_data:
-                curr = pt.get(f"cumsum_{p}", prev)
-                scores.append(curr - prev)
-                prev = curr
-            round_scores[p] = scores
+        # ── Consistency stats (CV over all rounds) ────────────────────────
+        # Read per-round scores directly from raw_df (avoids fragile cumsum diffing)
+        round_scores = {
+            p: raw_df[p].fillna(0).astype(int).tolist()
+            for p in players if p in raw_df.columns
+        }
 
         consistency_stats = {}
         for p, scores in round_scores.items():
@@ -289,7 +284,6 @@ def compute_overall_rankings(tournaments_raw):
     for tourney in tournaments_raw:
         tourney_id = tourney["id"]
         tourney_key = tourney["displayName"]
-        weight = _TOURNEY_TYPE_ENUM[tourney["type"]].weight()
         players = tourney["players"]
         raw_df = tourney["_raw_df"]
 
