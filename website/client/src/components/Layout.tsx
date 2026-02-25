@@ -5,7 +5,7 @@
  */
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Trophy, BarChart3, Swords, LayoutDashboard, Menu, X } from "lucide-react";
+import { Trophy, BarChart3, Swords, LayoutDashboard, Menu, X, Medal } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/rankings", label: "Rankings", icon: BarChart3 },
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/head-to-head", label: "Head to Head", icon: Swords },
+  { href: "/career-stats", label: "Career Stats", icon: Medal },
 ];
 
 interface LayoutProps {
@@ -66,7 +67,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = location === href;
+            const isActive = location === href || (href === "/career-stats" && location.startsWith("/players/"));
             return (
               <Link key={href} href={href}>
                 <div
