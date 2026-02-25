@@ -138,6 +138,11 @@ export interface TournamentSummary {
   winner: string | null;
   winners: string[];
   playerStats: PlayerStat[];
+  name: string | null;
+  location: string | null;
+  flag: string | null;
+  dates: string | null;
+  year: number | null;
 }
 
 export interface PlayerRanking {

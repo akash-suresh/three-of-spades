@@ -117,10 +117,21 @@ def compute_core_players():
 
 # ── Main tournament processing ────────────────────────────────────────────────
 
+def _load_metadata():
+    """Load tourney_data/metadata.csv and return a dict keyed by tournament id."""
+    meta_path = os.path.join(_REPO_ROOT, "tourney_data", "metadata.csv")
+    if not os.path.exists(meta_path):
+        return {}
+    import csv
+    with open(meta_path, newline="", encoding="utf-8") as f:
+        return {row["id"]: row for row in csv.DictReader(f)}
+
+
 def process_all_tournaments():
     """Load every tournament CSV and build per-tournament dicts with all website fields."""
     tournaments = []
     type_counters = {}
+    metadata = _load_metadata()
 
     for t, number in _TOURNEY_LIST_ENUM:
         tourney_type = t.value
@@ -133,6 +144,12 @@ def process_all_tournaments():
         display_num = number  # Use the CSV file number directly so gaps (e.g. skipped #10) are preserved
         tourney_id = f"{tourney_type}_{number}"
         display_name = f"{_TOURNEY_TYPE_ENUM[tourney_type].display()} #{display_num}"
+        meta = metadata.get(tourney_id, {})
+        tourney_name = meta.get("name") or None
+        tourney_location = meta.get("location") or None
+        tourney_flag = meta.get("flag") or None
+        tourney_dates = meta.get("dates") or None
+        tourney_year = int(meta["year"]) if meta.get("year") else None
 
         # ── Player stats ──────────────────────────────────────────────────────
         player_stats_df = get_player_stats(raw_df)
@@ -223,6 +240,11 @@ def process_all_tournaments():
             "totalGames": len(raw_df),
             "winner": winner,
             "winners": winners,
+            "name": tourney_name,
+            "location": tourney_location,
+            "flag": tourney_flag,
+            "dates": tourney_dates,
+            "year": tourney_year,
             "playerStats": player_stats,
             "gameData": game_data,
             "pairwiseStats": pairwise,

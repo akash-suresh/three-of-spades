@@ -10,7 +10,8 @@ import TournamentDetailPage from "./pages/TournamentDetailPage";
 import RankingsPage from "./pages/RankingsPage";
 import HeadToHeadPage from "./pages/HeadToHeadPage";
 import CareerStatsPage from "./pages/CareerStatsPage";
-import PlayerProfilePage from "./pages/PlayerProfilePage";
+import PlayerProfilePage from './pages/PlayerProfilePage';
+import HistoryPage from './pages/HistoryPage';
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/tournaments/:id" component={TournamentDetailPage} />
       <Route path="/head-to-head" component={HeadToHeadPage} />
       <Route path="/career-stats" component={CareerStatsPage} />
+      <Route path="/history" component={HistoryPage} />
       <Route path="/players/:player" component={PlayerProfilePage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
