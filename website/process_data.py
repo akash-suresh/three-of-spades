@@ -130,7 +130,7 @@ def process_all_tournaments():
             continue
 
         type_counters[tourney_type] = type_counters.get(tourney_type, 0) + 1
-        display_num = type_counters[tourney_type]
+        display_num = number  # Use the CSV file number directly so gaps (e.g. skipped #10) are preserved
         tourney_id = f"{tourney_type}_{number}"
         display_name = f"{_TOURNEY_TYPE_ENUM[tourney_type].display()} #{display_num}"
 
@@ -167,10 +167,11 @@ def process_all_tournaments():
         if named_bid_df is not None:
             for _, row in named_bid_df.iterrows():
                 p = row["Player"]
+                rate = row["BidWinRate"]
                 bid_stats_by_player[p] = {
                     "bidAttempts": int(row["BidAttempts"]),
                     "bidWins": int(row["BidWins"]),
-                    "bidWinRate": row["BidWinRate"],
+                    "bidWinRate": None if (rate is None or (isinstance(rate, float) and __import__('math').isnan(rate))) else float(rate),
                 }
 
         # ── Consistency stats (CV over all rounds) ────────────────────────
