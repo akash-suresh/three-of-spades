@@ -200,11 +200,12 @@ export default function TournamentDetailPage() {
     const runnerUp = ps[1];
     const last = ps[ps.length - 1];
     const gap = winner.TotalPoints - runnerUp.TotalPoints;
+    const isTied = gap === 0;
 
     // Dominant win: gap > 10% of winner's total
-    const isDominant = gap > winner.TotalPoints * 0.10;
+    const isDominant = !isTied && gap > winner.TotalPoints * 0.10;
     // Close finish: gap < 3% of winner's total
-    const isClose = gap < winner.TotalPoints * 0.03;
+    const isClose = !isTied && gap < winner.TotalPoints * 0.03;
 
     // Find the most consistent player (lowest CV)
     const cvEntries = Object.entries(consistencyStats)
@@ -245,7 +246,10 @@ export default function TournamentDetailPage() {
 
     // Opening: who won and how (with optional comeback suffix)
     const comebackSuffix = comebackFrom ? `, coming from behind ${comebackFrom} at the halfway mark` : '';
-    if (isDominant) {
+    const coWinners = (tournament.winners?.length ?? 1) > 1 ? tournament.winners : null;
+    if (isTied && coWinners) {
+      parts.push(`${coWinners.join(' and ')} finished level on ${winner.TotalPoints.toLocaleString()} pts — a shared victory`);
+    } else if (isDominant) {
       parts.push(`${winner.Player} dominated, finishing ${gap.toLocaleString()} pts clear of ${runnerUp.Player}${comebackSuffix}`);
     } else if (isClose) {
       parts.push(`${winner.Player} edged out ${runnerUp.Player} by just ${gap.toLocaleString()} pts in a tight finish${comebackSuffix}`);
@@ -334,20 +338,24 @@ export default function TournamentDetailPage() {
                     <span className="flex items-center gap-1"><Star size={13} /> ×{tournament.weight} weight</span>
                   </div>
                 </div>
-                {tournament.winner && (
+                {(tournament.winners?.length > 0 || tournament.winner) && (
                   <div className="text-right">
-                    <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "oklch(0.50 0.02 85)" }}>Winner</div>
-                    <div className="flex items-center gap-2 justify-end">
-                      <Trophy size={18} style={{ color: "oklch(0.78 0.15 85)" }} />
-                      <span
-                        className="text-xl font-bold"
-                        style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(tournament.winner) }}
-                      >
-                        {tournament.winner}
-                      </span>
+                    <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "oklch(0.50 0.02 85)" }}>
+                      {(tournament.winners?.length ?? 1) > 1 ? "Co-Winners" : "Winner"}
                     </div>
+                    {(tournament.winners?.length > 1 ? tournament.winners : [tournament.winner!]).map((w) => (
+                      <div key={w} className="flex items-center gap-2 justify-end">
+                        <Trophy size={18} style={{ color: "oklch(0.78 0.15 85)" }} />
+                        <span
+                          className="text-xl font-bold"
+                          style={{ fontFamily: "'Playfair Display', serif", color: getPlayerColor(w) }}
+                        >
+                          {w}
+                        </span>
+                      </div>
+                    ))}
                     <div className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.02 85)" }}>
-                      {tournament.playerStats.find((s) => s.Player === tournament.winner)?.TotalPoints.toLocaleString()} pts total
+                      {tournament.playerStats.find((s) => s.Player === (tournament.winners?.[0] ?? tournament.winner))?.TotalPoints.toLocaleString()} pts total
                     </div>
                   </div>
                 )}

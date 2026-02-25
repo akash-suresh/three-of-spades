@@ -113,6 +113,7 @@ export interface Tournament {
   guestPlayers: string[];
   totalGames: number;
   winner: string | null;
+  winners: string[];
   playerStats: PlayerStat[];
   gameData: GameDataPoint[];
   pairwiseStats: PairwiseStat[];
@@ -135,6 +136,7 @@ export interface TournamentSummary {
   guestPlayers: string[];
   totalGames: number;
   winner: string | null;
+  winners: string[];
   playerStats: PlayerStat[];
 }
 
