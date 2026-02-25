@@ -104,11 +104,12 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.TINY_CHAMPIONSHIP, 8),
     (TournamentTypes.MINI_CHAMPIONSHIP, 7),
     (TournamentTypes.TINY_CHAMPIONSHIP, 9),
-    (TournamentTypes.FRIENDLY, 4), # Abhi, Nihal visit home    
-    # (TournamentTypes.TINY_CHAMPIONSHIP, 10), # The one that was a draw
+    (TournamentTypes.FRIENDLY, 4), # Abhi, Nihal visit home
+    (TournamentTypes.MINI_CHAMPIONSHIP, 8), # Queen's woods
+    (TournamentTypes.TINY_CHAMPIONSHIP, 10), # The one that was a draw
     (TournamentTypes.TINY_CHAMPIONSHIP, 11), # P got a Job
     (TournamentTypes.TINY_CHAMPIONSHIP, 12), # Another tiny?
-    # (TournamentTypes.MINI_CHAMPIONSHIP, 8), # Abhi is back
+    (TournamentTypes.MINI_CHAMPIONSHIP, 9), # Abhi is back
     (TournamentTypes.TINY_CHAMPIONSHIP, 13), # Abhi debuts in Tiny
     (TournamentTypes.TINY_CHAMPIONSHIP, 14), # Winter 2025
     (TournamentTypes.TINY_CHAMPIONSHIP, 15), # NYC 2026
