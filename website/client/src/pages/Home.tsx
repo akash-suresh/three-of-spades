@@ -367,12 +367,15 @@ export default function Home() {
                     <div className="font-semibold text-sm mb-3 group-hover:text-[oklch(0.78_0.15_85)] transition-colors" style={{ color: "oklch(0.88 0.015 85)", fontFamily: "'Playfair Display', serif" }}>
                       {t.displayName}
                     </div>
-                    {t.winner && (
-                      <div className="flex items-center gap-1.5">
+                    {(t.winners?.length > 0 || t.winner) && (
+                      <div className="flex items-center gap-1 flex-wrap">
                         <Trophy size={12} style={{ color: "oklch(0.78 0.15 85)" }} />
-                        <span className="text-xs font-medium" style={{ color: getPlayerColor(t.winner) }}>
-                          {t.winner}
-                        </span>
+                        {(t.winners?.length > 1 ? t.winners : [t.winner!]).map((w, i, arr) => (
+                          <span key={w}>
+                            <span className="text-xs font-medium" style={{ color: getPlayerColor(w) }}>{w}</span>
+                            {i < arr.length - 1 && <span className="text-xs" style={{ color: "oklch(0.45 0.02 85)" }}> &amp; </span>}
+                          </span>
+                        ))}
                       </div>
                     )}
                     <div className="text-xs mt-1" style={{ color: "oklch(0.45 0.02 85)" }}>

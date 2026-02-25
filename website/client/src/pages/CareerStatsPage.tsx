@@ -77,10 +77,11 @@ export default function CareerStatsPage() {
     }
   }
 
-  // Tournament wins per player
+  // Tournament wins per player (co-winners each get a win)
   const tourneyWins: Record<string, number> = {};
   for (const t of tournamentSummary) {
-    if (t.winner) tourneyWins[t.winner] = (tourneyWins[t.winner] || 0) + 1;
+    const ws = t.winners?.length > 0 ? t.winners : (t.winner ? [t.winner] : []);
+    for (const w of ws) tourneyWins[w] = (tourneyWins[w] || 0) + 1;
   }
 
   // Build combined rows

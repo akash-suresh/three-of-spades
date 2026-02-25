@@ -66,14 +66,19 @@ function TournamentCard({ t, index }: { t: TournamentSummary; index: number }) {
             <ChevronRight size={14} className="flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "oklch(0.78 0.15 85)" }} />
           </div>
 
-          {/* Winner */}
-          {t.winner && (
-            <div className="flex items-center gap-1.5 mb-3">
+          {/* Winner(s) */}
+          {(t.winners?.length > 0 || t.winner) && (
+            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
               <Trophy size={11} style={{ color: "oklch(0.78 0.15 85)" }} />
-              <span className="text-xs font-semibold" style={{ color: getPlayerColor(t.winner) }}>
-                {t.winner}
+              {(t.winners?.length > 1 ? t.winners : [t.winner!]).map((w, i, arr) => (
+                <span key={w}>
+                  <span className="text-xs font-semibold" style={{ color: getPlayerColor(w) }}>{w}</span>
+                  {i < arr.length - 1 && <span className="text-xs" style={{ color: "oklch(0.45 0.02 85)" }}> &amp; </span>}
+                </span>
+              ))}
+              <span className="text-xs" style={{ color: "oklch(0.45 0.02 85)" }}>
+                {(t.winners?.length ?? 1) > 1 ? 'tied 1st' : 'won'}
               </span>
-              <span className="text-xs" style={{ color: "oklch(0.45 0.02 85)" }}>won</span>
             </div>
           )}
 

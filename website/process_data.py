@@ -199,8 +199,13 @@ def process_all_tournaments():
                     "scores": scores,
                 }
 
-        # ── Winner (top by TotalPoints) ───────────────────────────────────────
+        # ── Winner(s) — all players tied at the top TotalPoints ─────────────
         winner = player_stats[0]["Player"] if player_stats else None
+        if player_stats:
+            top_pts = player_stats[0]["TotalPoints"]
+            winners = [s["Player"] for s in player_stats if s["TotalPoints"] == top_pts]
+        else:
+            winners = []
 
         core_in_tourney = [p for p in players if p in CORE_PLAYERS]
         guests_in_tourney = [p for p in players if p not in CORE_PLAYERS]
@@ -217,6 +222,7 @@ def process_all_tournaments():
             "guestPlayers": guests_in_tourney,
             "totalGames": len(raw_df),
             "winner": winner,
+            "winners": winners,
             "playerStats": player_stats,
             "gameData": game_data,
             "pairwiseStats": pairwise,
@@ -425,8 +431,9 @@ def compute_all_time_stats(tournaments):
                 all_time[p]["wins"] += stat["Wins"]
                 all_time[p]["totalGames"] += stat["TotalGames"]
                 all_time[p]["totalPoints"] += stat["TotalPoints"]
-        if tourney["winner"] and tourney["winner"] in all_time:
-            all_time[tourney["winner"]]["tournamentWins"] += 1
+        for w in tourney.get("winners") or ([tourney["winner"]] if tourney["winner"] else []):
+            if w in all_time:
+                all_time[w]["tournamentWins"] += 1
 
     result = []
     for p, s in all_time.items():

@@ -104,6 +104,7 @@ export default function PlayerProfilePage() {
         type: t.type,
         totalGames: t.totalGames,
         winner: t.winner,
+        winners: t.winners ?? [],
         wins: ps?.Wins ?? 0,
         totalPoints: ps?.TotalPoints ?? 0,
         winPct: ps?.WinPercentage ?? 0,
@@ -153,7 +154,9 @@ export default function PlayerProfilePage() {
   const bestTourney = sortedByWinPct[0];
   const worstTourney = sortedByWinPct[sortedByWinPct.length - 1];
   const bestRatingGain = [...playerTourneys].sort((a, b) => b.ratingChange - a.ratingChange)[0];
-  const tourneyWins = playerTourneys.filter(t => t.winner === playerName).length;
+  const tourneyWins = playerTourneys.filter(t =>
+    t.winners?.length > 0 ? t.winners.includes(playerName) : t.winner === playerName
+  ).length;
 
   const tooltipStyle = {
     backgroundColor: "oklch(0.14 0.018 155)",
@@ -395,9 +398,9 @@ export default function PlayerProfilePage() {
                       <Link href={`/tournaments/${t.id}`}>
                         <span
                           className="font-medium text-xs cursor-pointer hover:underline"
-                          style={{ color: t.winner === playerName ? GOLD : "oklch(0.80 0.015 85)" }}
+                          style={{ color: (t.winners?.length > 0 ? t.winners.includes(playerName) : t.winner === playerName) ? GOLD : "oklch(0.80 0.015 85)" }}
                         >
-                          {t.winner === playerName && <Trophy size={10} className="inline mr-1" style={{ color: GOLD }} />}
+                          {(t.winners?.length > 0 ? t.winners.includes(playerName) : t.winner === playerName) && <Trophy size={10} className="inline mr-1" style={{ color: GOLD }} />}
                           {t.displayName}
                         </span>
                       </Link>
