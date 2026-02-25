@@ -83,7 +83,7 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.MINI_CHAMPIONSHIP, 7),
     (TournamentTypes.TINY_CHAMPIONSHIP, 9),
     (TournamentTypes.FRIENDLY, 4), # Abhi, Nihal visit home    
-    # (TournamentTypes.TINY_CHAMPIONSHIP, 11), # The one that was a draw
+    # (TournamentTypes.TINY_CHAMPIONSHIP, 10), # The one that was a draw
     (TournamentTypes.TINY_CHAMPIONSHIP, 11), # P got a Job
     (TournamentTypes.TINY_CHAMPIONSHIP, 12), # Another tiny?
     # (TournamentTypes.MINI_CHAMPIONSHIP, 8), # Abhi is back
