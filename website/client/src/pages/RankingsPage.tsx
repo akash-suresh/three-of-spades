@@ -4,8 +4,9 @@
  */
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Crown, Trophy, TrendingUp, Target, Zap } from "lucide-react";
+import { Crown, Trophy, TrendingUp, Target, Zap, ExternalLink } from "lucide-react";
 import Layout from "@/components/Layout";
+import { Link } from "wouter";
 import { fetchGameData, getPlayerColor, type GameData } from "@/lib/gameData";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -51,8 +52,13 @@ function PlayerCard({ player, rank, rating, allTimeStat, index }: {
               {player}
             </h3>
           </div>
-          <div className="text-xs mt-0.5" style={{ color: "oklch(0.55 0.02 85)" }}>
-            Universal Rating
+          <div className="flex items-center gap-3 mt-0.5">
+            <span className="text-xs" style={{ color: "oklch(0.55 0.02 85)" }}>Universal Rating</span>
+            <Link href={`/players/${encodeURIComponent(player)}`}>
+              <span className="flex items-center gap-0.5 text-xs cursor-pointer hover:underline" style={{ color: "oklch(0.78 0.15 85)" }}>
+                <ExternalLink size={10} /> Profile
+              </span>
+            </Link>
           </div>
         </div>
         <div className="text-right">
@@ -114,6 +120,14 @@ export default function RankingsPage() {
         ];
       })()
     : [];
+
+  // Rating history Y-axis domain — zoom to actual spread
+  const ratingHistoryData = data?.ratingHistory.slice(1) || [];
+  const ratingValues = ratingHistoryData.flatMap(r =>
+    (data?.players || []).map(p => r[p] as number).filter(v => v != null)
+  );
+  const ratingMin = ratingValues.length ? Math.floor(Math.min(...ratingValues) / 50) * 50 : 900;
+  const ratingMax = ratingValues.length ? Math.ceil(Math.max(...ratingValues) / 50) * 50 : 1300;
 
   // Win rate bar chart
   const winRateData = data?.allTimeStats.map((s) => ({
@@ -177,14 +191,14 @@ export default function RankingsPage() {
                 </div>
                 <div className="p-4">
                   <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={data?.ratingHistory || []} margin={{ top: 4, right: 8, bottom: 16, left: -10 }}>
+                    <LineChart data={ratingHistoryData} margin={{ top: 4, right: 8, bottom: 16, left: -10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.18 0.02 155)" />
                       <XAxis
                         dataKey="tournament"
                         tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }}
                         label={{ value: "Tournament #", position: "insideBottom", offset: -10, fontSize: 10, fill: "oklch(0.45 0.02 85)" }}
                       />
-                      <YAxis tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "oklch(0.45 0.02 85)" }} domain={[ratingMin, ratingMax]} tickCount={6} />
                       <Tooltip
                         contentStyle={{
                           background: "oklch(0.13 0.015 155)",
@@ -207,13 +221,26 @@ export default function RankingsPage() {
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="flex flex-wrap gap-3 mt-1 px-2">
-                    {(data?.players || []).map((player) => (
-                      <div key={player} className="flex items-center gap-1.5">
-                        <div className="w-3 h-0.5 rounded" style={{ background: getPlayerColor(player) }} />
-                        <span className="text-xs" style={{ color: "oklch(0.60 0.02 85)" }}>{player}</span>
-                      </div>
-                    ))}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 px-1">
+                    {(data?.players || [])
+                      .slice()
+                      .sort((a, b) => {
+                        const last = ratingHistoryData[ratingHistoryData.length - 1];
+                        return ((last?.[b] as number) ?? 0) - ((last?.[a] as number) ?? 0);
+                      })
+                      .map((player) => {
+                        const currentRating = ratingHistoryData[ratingHistoryData.length - 1]?.[player] as number | undefined;
+                        return (
+                          <div key={player} className="flex items-center gap-1.5">
+                            <div className="w-3 h-0.5 rounded" style={{ background: getPlayerColor(player) }} />
+                            <span className="text-xs font-medium" style={{ color: getPlayerColor(player) }}>{player}</span>
+                            {currentRating != null && (
+                              <span className="text-xs" style={{ color: "oklch(0.50 0.02 85)" }}>{Math.round(currentRating)}</span>
+                            )}
+                          </div>
+                        );
+                      })
+                    }
                   </div>
                 </div>
               </div>
@@ -261,7 +288,8 @@ export default function RankingsPage() {
 
             {/* Bid Success Rate */}
             {(() => {
-              const bidData = (data?.players || [])
+              const MIN_BID_ATTEMPTS = 10;
+              const allBidData = (data?.players || [])
                 .map((p) => {
                   const cs = data?.careerStats?.[p];
                   return {
@@ -271,7 +299,12 @@ export default function RankingsPage() {
                     bidWinRate: cs?.bidWinRate ?? null,
                   };
                 })
-                .filter((d) => d.bidAttempts > 0)
+                .filter((d) => d.bidAttempts > 0);
+              const bidData = allBidData
+                .filter((d) => d.bidAttempts >= MIN_BID_ATTEMPTS)
+                .sort((a, b) => (b.bidWinRate ?? 0) - (a.bidWinRate ?? 0));
+              const lowSampleBidData = allBidData
+                .filter((d) => d.bidAttempts < MIN_BID_ATTEMPTS)
                 .sort((a, b) => (b.bidWinRate ?? 0) - (a.bidWinRate ?? 0));
               if (bidData.length === 0) return null;
               return (
@@ -317,7 +350,13 @@ export default function RankingsPage() {
                         </motion.div>
                       );
                     })}
-                    <p className="text-xs pt-2" style={{ color: "oklch(0.40 0.02 85)" }}>
+                    {lowSampleBidData.length > 0 && (
+                      <p className="text-xs pt-1" style={{ color: "oklch(0.38 0.02 85)" }}>
+                        Excluded (fewer than {MIN_BID_ATTEMPTS} bids):{" "}
+                        {lowSampleBidData.map((d) => `${d.player} (${d.bidAttempts})`).join(", ")}
+                      </p>
+                    )}
+                    <p className="text-xs pt-1" style={{ color: "oklch(0.40 0.02 85)" }}>
                       Based on {(data?.tournaments || []).filter((t: any) => t.hasBidderData).length} tournaments with bidder tracking
                     </p>
                   </div>

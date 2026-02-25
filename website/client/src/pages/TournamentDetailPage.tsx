@@ -915,7 +915,69 @@ export default function TournamentDetailPage() {
               </div>
             )}
 
-            {/* ── 8. Post-Tournament Leaderboard ───────────────────────────── */}
+            {/* ── 8. Milestone Achievements ──────────────────────────────── */}
+            {(() => {
+              // Collect per-tournament milestone achievements from snapshot deltas
+              const achievements: { player: string; type: "fivple" | "tenple" | "fivemotte"; count: number }[] = [];
+              if (snapshot) {
+                for (const [player, snap] of Object.entries(snapshot)) {
+                  if (snap.tenplesThisTourney > 0)
+                    achievements.push({ player, type: "tenple", count: snap.tenplesThisTourney });
+                  if (snap.fivplesThisTourney > 0)
+                    achievements.push({ player, type: "fivple", count: snap.fivplesThisTourney });
+                  if (snap.fiveMottesThisTourney > 0)
+                    achievements.push({ player, type: "fivemotte", count: snap.fiveMottesThisTourney });
+                }
+              }
+              if (achievements.length === 0) return null;
+
+              const MILESTONE_META = {
+                tenple:   { emoji: "👑", label: "Tenple",   desc: "10 consecutive wins",   bg: "oklch(0.20 0.06 85)",  border: "oklch(0.78 0.15 85)" },
+                fivple:   { emoji: "⚡", label: "Fivple",   desc: "5 consecutive wins",    bg: "oklch(0.17 0.05 155)", border: "oklch(0.55 0.14 155)" },
+                fivemotte:{ emoji: "🥚", label: "FiveMotte",desc: "5 consecutive losses", bg: "oklch(0.17 0.04 20)",  border: "oklch(0.50 0.10 20)" },
+              } as const;
+
+              return (
+                <div className="felt-card rounded-lg overflow-hidden">
+                  <SectionHeader
+                    title="Milestone Achievements"
+                    subtitle="Streaks achieved during this tournament"
+                  />
+                  <div className="p-5">
+                    <div className="flex flex-wrap gap-3">
+                      {achievements.map(({ player, type, count }, i) => {
+                        const meta = MILESTONE_META[type];
+                        return (
+                          <motion.div
+                            key={`${player}-${type}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.07 }}
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                            style={{ background: meta.bg, border: `1px solid ${meta.border}` }}
+                          >
+                            <span className="text-2xl leading-none">{meta.emoji}</span>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-sm" style={{ color: getPlayerColor(player) }}>{player}</span>
+                                {count > 1 && (
+                                  <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: meta.border + "44", color: meta.border }}>×{count}</span>
+                                )}
+                              </div>
+                              <div className="text-xs mt-0.5" style={{ color: "oklch(0.65 0.02 85)" }}>
+                                {meta.label} — {meta.desc}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── 9. Post-Tournament Leaderboard ───────────────────────────── */}
             {snapshotRows.length > 0 && (
               <div className="felt-card rounded-lg overflow-hidden">
                 <SectionHeader

@@ -65,7 +65,14 @@ export default function Home() {
   }, []);
 
   const recentTournaments = data?.tournamentSummary.slice(-5).reverse() || [];
-  const ratingChartData = data?.ratingHistory.slice(-15) || [];
+  const ratingChartData = data?.ratingHistory.slice(1) || []; // skip entry 0 (all 1000 baseline)
+
+  // Compute Y-axis domain from actual data — zoom to the real spread
+  const ratingValues = ratingChartData.flatMap(r =>
+    (data?.players || []).map(p => r[p] as number).filter(v => v != null)
+  );
+  const ratingMin = ratingValues.length ? Math.floor(Math.min(...ratingValues) / 50) * 50 : 900;
+  const ratingMax = ratingValues.length ? Math.ceil(Math.max(...ratingValues) / 50) * 50 : 1300;
 
   return (
     <Layout>
@@ -221,7 +228,11 @@ export default function Home() {
                       tick={{ fontSize: 10, fill: "oklch(0.50 0.02 85)" }}
                       label={{ value: "Tournament #", position: "insideBottom", offset: -2, fontSize: 10, fill: "oklch(0.50 0.02 85)" }}
                     />
-                    <YAxis tick={{ fontSize: 10, fill: "oklch(0.50 0.02 85)" }} />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "oklch(0.50 0.02 85)" }}
+                      domain={[ratingMin, ratingMax]}
+                      tickCount={6}
+                    />
                     <Tooltip
                       contentStyle={{
                         background: "oklch(0.13 0.015 155)",
@@ -249,14 +260,27 @@ export default function Home() {
                   Loading chart data...
                 </div>
               )}
-              {/* Legend */}
-              <div className="flex flex-wrap gap-3 mt-2 px-2">
-                {(data?.players || []).map((player) => (
-                  <div key={player} className="flex items-center gap-1.5">
-                    <div className="w-3 h-0.5 rounded" style={{ background: getPlayerColor(player) }} />
-                    <span className="text-xs" style={{ color: "oklch(0.60 0.02 85)" }}>{player}</span>
-                  </div>
-                ))}
+              {/* Legend with current ratings */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 px-1">
+                {(data?.players || [])
+                  .slice()
+                  .sort((a, b) => {
+                    const last = ratingChartData[ratingChartData.length - 1];
+                    return ((last?.[b] as number) ?? 0) - ((last?.[a] as number) ?? 0);
+                  })
+                  .map((player) => {
+                    const currentRating = ratingChartData[ratingChartData.length - 1]?.[player] as number | undefined;
+                    return (
+                      <div key={player} className="flex items-center gap-1.5">
+                        <div className="w-3 h-0.5 rounded" style={{ background: getPlayerColor(player) }} />
+                        <span className="text-xs font-medium" style={{ color: getPlayerColor(player) }}>{player}</span>
+                        {currentRating != null && (
+                          <span className="text-xs" style={{ color: "oklch(0.50 0.02 85)" }}>{Math.round(currentRating)}</span>
+                        )}
+                      </div>
+                    );
+                  })
+                }
               </div>
             </div>
           </div>

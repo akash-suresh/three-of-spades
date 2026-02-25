@@ -77,6 +77,9 @@ export interface TournamentPlayerSnapshot {
   numFivles: number;
   numTenples: number;
   fiveMottes: number;
+  fivplesThisTourney: number;
+  tenplesThisTourney: number;
+  fiveMottesThisTourney: number;
 }
 
 export interface CareerStats {
@@ -93,6 +96,9 @@ export interface CareerStats {
   numFivles: number;
   numTenples: number;
   fiveMottes: number;
+  fivplesThisTourney: number;
+  tenplesThisTourney: number;
+  fiveMottesThisTourney: number;
 }
 
 export interface Tournament {
