@@ -88,7 +88,7 @@ function SectionTable({ tournaments }: { tournaments: TournamentSummary[] }) {
                   <Link href={`/tournaments/${t.id}`}>
                     <span
                       className="cursor-pointer hover:underline font-medium"
-                      style={{ color: TEXT, fontFamily: "'Playfair Display', serif" }}
+                      style={{ color: TEXT }}
                     >
                       {t.name || t.displayName}
                     </span>
