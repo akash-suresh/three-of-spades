@@ -122,6 +122,11 @@ export interface Tournament {
   bidStatsByPlayer: Record<string, { bidAttempts: number; bidWins: number; bidWinRate: number | null }>;
   hasBidderData: boolean;   // true when the source CSV had a Bidder column
   consistencyStats: Record<string, ConsistencyStat>;
+  name: string | null;
+  location: string | null;
+  flag: string | null;
+  dates: string | null;
+  year: number | null;
 }
 
 export interface TournamentSummary {
@@ -138,6 +143,11 @@ export interface TournamentSummary {
   winner: string | null;
   winners: string[];
   playerStats: PlayerStat[];
+  name: string | null;
+  location: string | null;
+  flag: string | null;
+  dates: string | null;
+  year: number | null;
 }
 
 export interface PlayerRanking {

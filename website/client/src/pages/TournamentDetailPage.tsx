@@ -320,22 +320,34 @@ export default function TournamentDetailPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <span
-                    className="inline-block text-xs px-2 py-0.5 rounded font-medium mb-2"
-                    style={{ background: typeColor + "22", color: typeColor }}
-                  >
-                    {TOURNAMENT_TYPE_LABELS[tournament.type as TournamentType]}
-                  </span>
+                  {/* Structural label: small + muted, above the name */}
+                  <p className="text-xs font-medium mb-1" style={{ color: typeColor }}>
+                    {tournament.displayName}
+                  </p>
+                  {/* Main heading: tournament name if available, else displayName */}
                   <h1
-                    className="text-2xl lg:text-3xl font-bold"
+                    className="text-2xl lg:text-3xl font-bold leading-tight"
                     style={{ fontFamily: "'Playfair Display', serif", color: "oklch(0.92 0.015 85)" }}
                   >
-                    {tournament.displayName}
+                    {tournament.name
+                      ? <>{tournament.flag && <span className="mr-2">{tournament.flag}</span>}{tournament.name}</>
+                      : tournament.displayName
+                    }
                   </h1>
-                  <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: "oklch(0.55 0.02 85)" }}>
+                  {/* Location + date line */}
+                  {(tournament.location || tournament.year) && (
+                    <div className="flex items-center gap-2 mt-1.5 text-sm flex-wrap" style={{ color: "oklch(0.45 0.02 85)" }}>
+                      {tournament.location && <span>{tournament.location}</span>}
+                      {tournament.location && tournament.year && <span>·</span>}
+                      {tournament.dates && tournament.year && (
+                        <span>{tournament.dates.replace(/[\d]+-?[\d]*(?:st|nd|rd|th)?,?\s*/g, "").trim() || tournament.dates.split(" ")[0]} {tournament.year}</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Stats line */}
+                  <div className="flex items-center gap-4 mt-1.5 text-sm" style={{ color: "oklch(0.55 0.02 85)" }}>
                     <span className="flex items-center gap-1"><Gamepad2 size={13} /> {tournament.totalGames} rounds</span>
                     <span className="flex items-center gap-1"><Users size={13} /> {tournament.players.length} players</span>
-                    <span className="flex items-center gap-1"><Star size={13} /> ×{tournament.weight} weight</span>
                   </div>
                 </div>
                 {(tournament.winners?.length > 0 || tournament.winner) && (

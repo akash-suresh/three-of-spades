@@ -5,7 +5,7 @@
  */
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Trophy, BarChart3, Swords, LayoutDashboard, Menu, X, Medal } from "lucide-react";
+import { Trophy, BarChart3, Swords, LayoutDashboard, Menu, X, Medal, BookOpen } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/head-to-head", label: "Head to Head", icon: Swords },
   { href: "/career-stats", label: "Career Stats", icon: Medal },
+  { href: "/history", label: "History", icon: BookOpen },
 ];
 
 interface LayoutProps {

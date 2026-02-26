@@ -62,6 +62,12 @@ function TournamentCard({ t, index }: { t: TournamentSummary; index: number }) {
               >
                 {t.displayName}
               </h3>
+              {t.name && (
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: "oklch(0.50 0.02 85)" }}>
+                  {t.flag && <span className="mr-1">{t.flag}</span>}
+                  {t.name}
+                </p>
+              )}
             </div>
             <ChevronRight size={14} className="flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "oklch(0.78 0.15 85)" }} />
           </div>
