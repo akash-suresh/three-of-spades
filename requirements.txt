@@ -1,3 +1,7 @@
-# For website/process_data.py (generates game_data.json from tourney_data CSVs)
+# For website/process_data.py (generates game_data.json from tourney_data CSVs).
+# Full chain: process_data → utils.{Player,ranking_system,constants,data_cruncher}
+#   → data_cruncher → data_preprocessor; Player/ranking_system → Tournament → matplotlib.
+# (tournament_helper/tqdm not used by process_data.)
 numpy>=1.20
 pandas>=1.3
+matplotlib>=3.5
