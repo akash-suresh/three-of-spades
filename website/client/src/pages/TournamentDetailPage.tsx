@@ -337,7 +337,11 @@ export default function TournamentDetailPage() {
                       {tournament.flag && <span className="mr-1.5">{tournament.flag}</span>}
                       {tournament.name}
                       {tournament.location && <span style={{ color: "oklch(0.45 0.02 85)" }}> · {tournament.location}</span>}
-                      {tournament.dates && <span style={{ color: "oklch(0.45 0.02 85)" }}> · {tournament.dates}</span>}
+                      {tournament.dates && tournament.year && (
+                        <span style={{ color: "oklch(0.45 0.02 85)" }}>
+                          {" · "}{tournament.dates.replace(/[\d]+-?[\d]*(?:st|nd|rd|th)?,?\s*/g, "").trim() || tournament.dates.split(" ")[0]} {tournament.year}
+                        </span>
+                      )}
                     </p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: "oklch(0.55 0.02 85)" }}>
