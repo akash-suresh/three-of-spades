@@ -332,6 +332,14 @@ export default function TournamentDetailPage() {
                   >
                     {tournament.displayName}
                   </h1>
+                  {tournament.name && (
+                    <p className="text-base mt-0.5" style={{ color: "oklch(0.65 0.02 85)" }}>
+                      {tournament.flag && <span className="mr-1.5">{tournament.flag}</span>}
+                      {tournament.name}
+                      {tournament.location && <span style={{ color: "oklch(0.45 0.02 85)" }}> · {tournament.location}</span>}
+                      {tournament.dates && <span style={{ color: "oklch(0.45 0.02 85)" }}> · {tournament.dates}</span>}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: "oklch(0.55 0.02 85)" }}>
                     <span className="flex items-center gap-1"><Gamepad2 size={13} /> {tournament.totalGames} rounds</span>
                     <span className="flex items-center gap-1"><Users size={13} /> {tournament.players.length} players</span>
