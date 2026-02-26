@@ -1,10 +1,11 @@
 # Netlify config for three-of-spades website
 # https://docs.netlify.com/configure-builds/file-based-configuration/
+# process_data.py must run from repo root so it can read tourney_data/ and utils/.
 
 [build]
-  base = "website"
-  command = "pnpm run build"
-  publish = "dist/public"
+  base = "."
+  command = "pip install -r requirements.txt && python3 website/process_data.py && cd website && pnpm install && pnpm run build"
+  publish = "website/dist/public"
 
 # SPA: serve index.html for client-side routes
 [[redirects]]
