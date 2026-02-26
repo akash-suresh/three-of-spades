@@ -27,6 +27,11 @@ import os
 import statistics
 import sys
 
+# Ensure repo root is on path so "utils" can be imported when run from any cwd (e.g. Netlify).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 import numpy as np
 import pandas as pd
 
@@ -45,8 +50,6 @@ from utils.data_cruncher import (
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-# Resolve paths relative to this file so the script works from any cwd.
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(_REPO_ROOT, "tourney_data", "raw_scores")
 
 # NON_PLAYER_COLUMNS from utils.constants covers Bidder/Discard/Margin.
