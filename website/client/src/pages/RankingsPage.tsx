@@ -93,6 +93,7 @@ export default function RankingsPage() {
   const [data, setData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [selectedPlayer2, setSelectedPlayer2] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGameData().then((d) => {
@@ -101,25 +102,48 @@ export default function RankingsPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // Radar chart data for selected player
-  const radarData = selectedPlayer && data
-    ? (() => {
-        const stat = data.allTimeStats.find((s) => s.player === selectedPlayer);
-        if (!stat) return [];
-        const maxWinPct = Math.max(...data.allTimeStats.map((s) => s.winPercentage));
-        const maxAvgPts = Math.max(...data.allTimeStats.map((s) => s.avgPoints));
-        const maxTWins = Math.max(...data.allTimeStats.map((s) => s.tournamentWins));
-        const rating = data.rankings.find((r) => r.player === selectedPlayer)?.rating || 1000;
-        const maxRating = Math.max(...data.rankings.map((r) => r.rating));
-        return [
-          { metric: "Win Rate", value: Math.round((stat.winPercentage / maxWinPct) * 100) },
-          { metric: "Avg Points", value: Math.round((stat.avgPoints / maxAvgPts) * 100) },
-          { metric: "Tourney Wins", value: Math.round((stat.tournamentWins / maxTWins) * 100) },
-          { metric: "Rating", value: Math.round((rating / maxRating) * 100) },
-          { metric: "Games Played", value: Math.round((stat.totalGames / Math.max(...data.allTimeStats.map((s) => s.totalGames))) * 100) },
-        ];
-      })()
-    : [];
+  // Radar chart data — build normalised data for up to 2 players
+  const buildRadarData = (players: string[]) => {
+    if (!data || players.length === 0) return [];
+    const cs = data.careerStats;
+    const ats = data.allTimeStats;
+    const maxWinPct = Math.max(...Object.values(cs).map((c: any) => c.winPct));
+    const maxBidRate = Math.max(...Object.values(cs).filter((c: any) => c.bidWinRate !== null).map((c: any) => c.bidWinRate as number));
+    const maxBidAndWonPct = Math.max(...Object.values(cs).map((c: any) => c.bidAndWonPct));
+    const maxTWins = Math.max(...ats.map((s) => s.tournamentWins));
+    const maxFivples = Math.max(...Object.values(cs).map((c: any) => c.numFivles));
+    const metrics = [
+      { metric: "Win %",       key: (p: string) => Math.round(((cs[p]?.winPct ?? 0) / (maxWinPct || 1)) * 100) },
+      { metric: "Bid Rate",    key: (p: string) => cs[p]?.bidWinRate != null ? Math.round((cs[p].bidWinRate / (maxBidRate || 1)) * 100) : 0 },
+      { metric: "Bid & Won%",  key: (p: string) => Math.round(((cs[p]?.bidAndWonPct ?? 0) / (maxBidAndWonPct || 1)) * 100) },
+      { metric: "Tourney Wins",key: (p: string) => Math.round(((ats.find(s => s.player === p)?.tournamentWins ?? 0) / (maxTWins || 1)) * 100) },
+      { metric: "Fivples",     key: (p: string) => Math.round(((cs[p]?.numFivles ?? 0) / (maxFivples || 1)) * 100) },
+    ];
+    return metrics.map(({ metric, key }) => {
+      const entry: Record<string, any> = { metric };
+      players.forEach(p => { entry[p] = key(p); });
+      return entry;
+    });
+  };
+
+  const activePlayers = [selectedPlayer, selectedPlayer2].filter(Boolean) as string[];
+  const radarData = buildRadarData(activePlayers);
+
+  const handlePlayerClick = (p: string) => {
+    if (selectedPlayer === p) {
+      setSelectedPlayer(selectedPlayer2);
+      setSelectedPlayer2(null);
+    } else if (selectedPlayer2 === p) {
+      setSelectedPlayer2(null);
+    } else if (!selectedPlayer) {
+      setSelectedPlayer(p);
+    } else if (!selectedPlayer2) {
+      setSelectedPlayer2(p);
+    } else {
+      // Both slots full — replace player2
+      setSelectedPlayer2(p);
+    }
+  };
 
   // Rating history Y-axis domain — zoom to actual spread
   const ratingHistoryData = data?.ratingHistory.slice(1) || [];
@@ -366,35 +390,53 @@ export default function RankingsPage() {
 
             {/* Player Radar + Selector */}
             <div className="felt-card rounded-lg overflow-hidden">
-              <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid oklch(0.22 0.03 155)" }}>
+              <div className="px-5 py-4 flex items-center justify-between gap-4" style={{ borderBottom: "1px solid oklch(0.22 0.03 155)" }}>
                 <div>
                   <h2 className="font-semibold" style={{ fontFamily: "'Playfair Display', serif", color: "oklch(0.92 0.015 85)" }}>
-                    Player Profile
+                    Player Comparison
                   </h2>
                   <p className="text-xs mt-0.5" style={{ color: "oklch(0.50 0.02 85)" }}>
-                    Relative performance across key metrics
+                    Select up to 2 players to compare across key metrics
                   </p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {(data?.players || []).map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setSelectedPlayer(p)}
-                      className="px-3 py-1 rounded text-xs font-medium transition-all"
-                      style={{
-                        background: selectedPlayer === p ? getPlayerColor(p) + "33" : "oklch(0.16 0.02 155)",
-                        color: selectedPlayer === p ? getPlayerColor(p) : "oklch(0.60 0.02 85)",
-                        border: `1px solid ${selectedPlayer === p ? getPlayerColor(p) + "66" : "oklch(0.22 0.03 155)"}`,
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ))}
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {(data?.players || []).map((p) => {
+                    const isP1 = selectedPlayer === p;
+                    const isP2 = selectedPlayer2 === p;
+                    const isActive = isP1 || isP2;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => handlePlayerClick(p)}
+                        className="px-3 py-1 rounded text-xs font-medium transition-all"
+                        style={{
+                          background: isActive ? getPlayerColor(p) + "33" : "oklch(0.16 0.02 155)",
+                          color: isActive ? getPlayerColor(p) : "oklch(0.60 0.02 85)",
+                          border: `1px solid ${isActive ? getPlayerColor(p) + "88" : "oklch(0.22 0.03 155)"}`,
+                          outline: isP2 ? `2px dashed ${getPlayerColor(p)}66` : "none",
+                          outlineOffset: "2px",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+              {/* Legend */}
+              {activePlayers.length > 0 && (
+                <div className="px-5 pt-3 flex gap-4">
+                  {activePlayers.map((p, i) => (
+                    <div key={p} className="flex items-center gap-1.5 text-xs" style={{ color: getPlayerColor(p) }}>
+                      <span style={{ display: "inline-block", width: 24, height: 2, background: getPlayerColor(p), borderRadius: 1, borderBottom: i === 1 ? `2px dashed ${getPlayerColor(p)}` : undefined }} />
+                      {p}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="p-4 flex justify-center">
-                {radarData.length > 0 && selectedPlayer && (
-                  <ResponsiveContainer width="100%" height={280}>
+                {radarData.length > 0 && activePlayers.length > 0 && (
+                  <ResponsiveContainer width="100%" height={300}>
                     <RadarChart data={radarData}>
                       <PolarGrid stroke="oklch(0.22 0.03 155)" />
                       <PolarAngleAxis
@@ -406,14 +448,18 @@ export default function RankingsPage() {
                         domain={[0, 100]}
                         tick={{ fontSize: 9, fill: "oklch(0.40 0.02 85)" }}
                       />
-                      <Radar
-                        name={selectedPlayer}
-                        dataKey="value"
-                        stroke={getPlayerColor(selectedPlayer)}
-                        fill={getPlayerColor(selectedPlayer)}
-                        fillOpacity={0.2}
-                        strokeWidth={2}
-                      />
+                      {activePlayers.map((p, i) => (
+                        <Radar
+                          key={p}
+                          name={p}
+                          dataKey={p}
+                          stroke={getPlayerColor(p)}
+                          fill={getPlayerColor(p)}
+                          fillOpacity={i === 0 ? 0.18 : 0.10}
+                          strokeWidth={i === 0 ? 2 : 1.5}
+                          strokeDasharray={i === 1 ? "5 3" : undefined}
+                        />
+                      ))}
                       <Tooltip
                         contentStyle={{
                           background: "oklch(0.13 0.015 155)",
@@ -422,7 +468,7 @@ export default function RankingsPage() {
                           fontSize: "12px",
                           color: "oklch(0.88 0.015 85)",
                         }}
-                        formatter={(v: any) => [`${v}/100`, "Score"]}
+                        formatter={(v: any, name: string) => [`${v}/100`, name]}
                       />
                     </RadarChart>
                   </ResponsiveContainer>

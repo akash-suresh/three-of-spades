@@ -105,6 +105,7 @@ export default function CareerStatsPage() {
       numFivles: cs.numFivles,
       numTenples: cs.numTenples,
       fiveMottes: cs.fiveMottes,
+      bidAndWonPct: cs.bidAndWonPct,
     };
   }).sort((a, b) => b.winPct - a.winPct);
 
@@ -130,17 +131,17 @@ export default function CareerStatsPage() {
 
   // Radar chart: normalise each metric to 0–100 across players
   const maxWinPct = Math.max(...rows.map(r => r.winPct));
-  const maxAvgPts = Math.max(...rows.map(r => r.avgPoints));
   const maxTourneyWins = Math.max(...rows.map(r => r.tourneyWins));
   const maxFivples = Math.max(...rows.map(r => r.numFivles));
   const maxBidRate = Math.max(...rows.filter(r => r.bidWinRate !== null).map(r => r.bidWinRate as number));
+  const maxBidAndWonPct = Math.max(...rows.map(r => r.bidAndWonPct));
 
   const radarData = [
     { metric: "Win %", ...Object.fromEntries(rows.map(r => [r.player, Math.round((r.winPct / maxWinPct) * 100)])) },
-    { metric: "Avg Pts", ...Object.fromEntries(rows.map(r => [r.player, Math.round((r.avgPoints / maxAvgPts) * 100)])) },
+    { metric: "Bid Rate", ...Object.fromEntries(rows.map(r => [r.player, r.bidWinRate !== null ? Math.round((r.bidWinRate / (maxBidRate || 1)) * 100) : 0])) },
+    { metric: "Bid & Won%", ...Object.fromEntries(rows.map(r => [r.player, Math.round((r.bidAndWonPct / (maxBidAndWonPct || 1)) * 100)])) },
     { metric: "Tourney Wins", ...Object.fromEntries(rows.map(r => [r.player, Math.round((r.tourneyWins / (maxTourneyWins || 1)) * 100)])) },
     { metric: "Fivples", ...Object.fromEntries(rows.map(r => [r.player, Math.round((r.numFivles / (maxFivples || 1)) * 100)])) },
-    { metric: "Bid Rate", ...Object.fromEntries(rows.map(r => [r.player, r.bidWinRate !== null ? Math.round((r.bidWinRate / (maxBidRate || 1)) * 100) : 0])) },
   ];
 
   const tooltipStyle = {
