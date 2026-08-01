@@ -1,4 +1,4 @@
-# AGENT.md — Updating tournament scores
+# AGENTS.md — Updating tournament scores
 
 Guide for an AI agent asked to **add a new tournament** or **fix scores in an existing
 one**. Read this plus the file table below; you do not need to read the notebooks.
