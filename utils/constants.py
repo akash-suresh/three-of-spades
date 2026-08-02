@@ -115,4 +115,5 @@ TOURNAMENT_LIST_CHRONOLOGICAL = [
     (TournamentTypes.TINY_CHAMPIONSHIP, 15), # NYC 2026
     (TournamentTypes.TINY_CHAMPIONSHIP, 16), # Pearl Harbor
     (TournamentTypes.TINY_CHAMPIONSHIP, 17), # High Ceilings
+    (TournamentTypes.TINY_CHAMPIONSHIP, 18), # Final Round Interview
 ]
